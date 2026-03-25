@@ -1,0 +1,120 @@
+/* GSAP Card Grid Styles */
+.gsap-card-grid-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.gsap-card-grid-container {
+  max-width: 72rem;
+  width: 100%;
+}
+
+.gsap-card-grid-title {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: #1e293b;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.gsap-card-grid-wrapper {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 2rem;
+  border: 1px solid #cbd5e1;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.gsap-card-grid-background {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gsap-card-grid-background-text {
+  font-size: 3.75rem;
+  font-weight: bold;
+  color: rgba(148, 163, 184, 0.2);
+}
+
+.gsap-card {
+  position: absolute;
+  padding: 0.75rem 1.5rem;
+  color: white;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  z-index: 1;
+  transition: transform 0.2s ease;
+}
+
+.gsap-card:hover {
+  transform: scale(1.05);
+}
+
+.gsap-card:active {
+  cursor: grabbing;
+}
+
+.gsap-card-description {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.gsap-card-description-text {
+  color: #64748b;
+}
+
+/* Card Colors - Light Theme */
+.gsap-card-blue { 
+  background: linear-gradient(135deg, #3b82f6, #2563eb); 
+  color: white;
+}
+.gsap-card-green { 
+  background: linear-gradient(135deg, #10b981, #059669); 
+  color: white;
+}
+.gsap-card-yellow { 
+  background: linear-gradient(135deg, #f59e0b, #d97706); 
+  color: white;
+}
+.gsap-card-purple { 
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
+  color: white;
+}
+.gsap-card-orange { 
+  background: linear-gradient(135deg, #f97316, #ea580c); 
+  color: white;
+}
+.gsap-card-green-dark { 
+  background: linear-gradient(135deg, #059669, #047857); 
+  color: white;
+}
+.gsap-card-emerald { 
+  background: linear-gradient(135deg, #10b981, #059669); 
+  color: white;
+}
+.gsap-card-gray { 
+  background: linear-gradient(135deg, #6b7280, #4b5563); 
+  color: white;
+}
+.gsap-card-pink { 
+  background: linear-gradient(135deg, #ec4899, #db2777); 
+  color: white;
+}
+.gsap-card-red { 
+  background: linear-gradient(135deg, #ef4444, #dc2626); 
+  color: white;
+}
