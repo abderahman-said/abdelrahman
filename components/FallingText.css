@@ -1,0 +1,54 @@
+.falling-text-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  text-align: center;
+  padding-top: 2em;
+}
+
+@media (max-width: 768px) {
+  .falling-text-container {
+    padding-top: 1.5em;
+  }
+}
+
+@media (max-width: 480px) {
+  .falling-text-container {
+    padding-top: 1.2em;
+  }
+}
+
+.falling-text-target {
+  display: inline-block;
+}
+
+.word {
+  display: inline-block;
+  margin: 0 2px;
+  user-select: none;
+}
+
+.highlighted {
+  color: cyan;
+  font-weight: bold;
+}
+
+.falling-text-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+   width: 100%;
+  height: 100%;
+}
+.falling-text-canvas canvas {
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 768px) {
+ .skills-scene {
+    height: 360px;
+}
+}

@@ -23,6 +23,17 @@ export default function ServiceCards() {
         });
 
         initCardAnimations();
+
+        // Handle resize events for responsive behavior
+        const handleResize = () => {
+            ScrollTrigger.refresh();
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+        };
     }, []);
 
     return (
@@ -36,7 +47,7 @@ export default function ServiceCards() {
             </div>
 
             {/* ─── Service Cards ─── */}
-            <div className="cards-wrapper" id="cards-wrapper">
+            <div className="cards-wrapper service-cards-wrapper" id="cards-wrapper">
                 {CARDS_DATA.map((card) => (
                     <div key={card.color} className={`card card-${card.color}`}>
                         <div className={`card-sticker sticker-${card.sticker}`}>
@@ -81,11 +92,42 @@ function initCardAnimations() {
         { rotation: 5 }
     ];
 
+    // Enhanced mobile detection
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const isTablet = window.matchMedia('(max-width: 1024px)').matches && !isMobile;
     let leaveTimeout = null;
 
-    if (!isMobile) {
+    // Kill any existing ScrollTriggers before creating new ones
+    ScrollTrigger.getAll().forEach(trigger => {
+        if (trigger.vars.trigger === '.cards-wrapper' || trigger.vars.id === 'mobile-cards-pin') {
+            trigger.kill();
+        }
+    });
+
+    // Reset all cards to default state first
+    gsap.set(cards, {
+        clearProps: "all"
+    });
+
+    if (!isMobile && !isTablet) {
+        // Desktop: Original hover animations
         cards.forEach((card, index) => {
+            gsap.set(card, {
+                position: 'absolute',
+                left: card.classList.contains(`card-green`) ? 'calc(50% - 600px)' :
+                      card.classList.contains(`card-darkblue`) ? 'calc(50% - 330px)' :
+                      card.classList.contains(`card-orange`) ? 'calc(50% - 80px)' :
+                      card.classList.contains(`card-maroon`) ? 'calc(50% + 180px)' :
+                      card.classList.contains(`card-pink`) ? 'calc(50% + 320px)' : '50%',
+                top: card.classList.contains(`card-green`) ? '50px' :
+                     card.classList.contains(`card-darkblue`) ? '100px' :
+                     card.classList.contains(`card-orange`) ? '20px' :
+                     card.classList.contains(`card-maroon`) ? '30px' :
+                     card.classList.contains(`card-pink`) ? '70px' : '0',
+                rotation: originalData[index].rotation,
+                zIndex: index + 1
+            });
+
             card.addEventListener('mouseenter', () => {
                 if (leaveTimeout) { clearTimeout(leaveTimeout); leaveTimeout = null; }
                 const hoverGap = 120;
@@ -138,50 +180,60 @@ function initCardAnimations() {
                 }, 80);
             });
         });
+    } else if (isTablet) {
+        // Tablet: Simplified layout - stacked vertically
+        const cardsWrapper = document.querySelector('.cards-wrapper');
+        gsap.set(cardsWrapper, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '30px',
+            height: 'auto',
+            position: 'relative'
+        });
+
+        cards.forEach((card, index) => {
+            gsap.set(card, {
+                position: 'relative',
+                left: 'auto',
+                top: 'auto',
+                transform: 'none',
+                rotation: 0,
+                zIndex: 'auto',
+                width: '90%',
+                maxWidth: '400px',
+                height: 'auto',
+                minHeight: '400px',
+                margin: '0'
+            });
+        });
     } else {
-        // ─── Mobile: Stacked card scroll reveal ───
+        // Mobile: Stacked card scroll reveal
         const cardsWrapper = document.querySelector('.cards-wrapper');
         const scrollPerCard = window.innerHeight * 0.8;
         const navH = 60;
         const mobileRotations = [-6, 4, -8, 5, -3];
 
+        gsap.set(cardsWrapper, {
+            display: 'block',
+            height: 'auto',
+            position: 'relative'
+        });
+
         cards.forEach((card, i) => {
             gsap.set(card, {
-                position: 'absolute', left: '50%', top: '0', xPercent: -50,
-                y: i === 0 ? 0 : window.innerHeight * 1.1,
-                rotation: mobileRotations[i % mobileRotations.length],
-                zIndex: i + 1,
-                transformOrigin: 'center center'
+                position: 'relative',
+                left: 'auto',
+                top: 'auto',
+                transform: 'none',
+                rotation: 0,
+                zIndex: 'auto',
+                width: '90%',
+                maxWidth: '350px',
+                height: 'auto',
+                minHeight: '450px',
+                margin: '0 auto 20px'
             });
-        });
-
-        const wrapperH = window.innerHeight * 0.7 + scrollPerCard * (cards.length - 1);
-        gsap.set(cardsWrapper, { height: wrapperH });
-
-        ScrollTrigger.create({
-            trigger: cardsWrapper,
-            start: `top ${navH}px`,
-            end: `+=${scrollPerCard * (cards.length - 1)}`,
-            pin: true,
-            pinSpacing: true,
-            id: 'mobile-cards-pin'
-        });
-
-        cards.forEach((card, i) => {
-            if (i === 0) return;
-            gsap.fromTo(card,
-                { y: window.innerHeight * 1.1 },
-                {
-                    y: 0,
-                    ease: 'power3.out',
-                    scrollTrigger: {
-                        trigger: cardsWrapper,
-                        start: `top+=${(i - 1) * scrollPerCard} ${navH}px`,
-                        end: `top+=${i * scrollPerCard} ${navH}px`,
-                        scrub: 0.4
-                    }
-                }
-            );
         });
     }
 }

@@ -102,6 +102,15 @@
     right: -35px;
 }
 
+/* Hide hit area on mobile */
+@media (max-width: 768px) {
+    .card-darkblue::after,
+    .card-orange::after,
+    .card-maroon::after {
+        display: none;
+    }
+}
+
 /* Light card divider overrides */
 .card-pink .card-divider-svg,
 .card-orange .card-divider-svg,
@@ -127,12 +136,68 @@
     letter-spacing: -0.3px;
 }
 
+/* Tablet responsive */
+@media (max-width: 1024px) {
+    .card-list li {
+        font-size: 1.05rem;
+        margin-bottom: 7px;
+        gap: 10px;
+        letter-spacing: -0.2px;
+    }
+}
+
+@media (max-width: 768px) {
+    .card-list li {
+        font-size: 1rem;
+        margin-bottom: 6px;
+        gap: 8px;
+        line-height: 1.4;
+        text-align: left;
+        letter-spacing: -0.1px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-list li {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        gap: 6px;
+        line-height: 1.3;
+        letter-spacing: 0;
+    }
+}
+
 .services-card__bullet-svg {
     width: 14px;
     height: 18px;
     flex-shrink: 0;
     margin-top: 2px;
     color: currentColor;
+}
+
+/* Tablet responsive */
+@media (max-width: 1024px) {
+    .services-card__bullet-svg {
+        width: 13px;
+        height: 16px;
+        margin-top: 1px;
+    }
+}
+
+@media (max-width: 768px) {
+    .services-card__bullet-svg {
+        width: 12px;
+        height: 15px;
+        margin-top: 1px;
+    }
+}
+
+@media (max-width: 480px) {
+    .services-card__bullet-svg {
+        width: 11px;
+        height: 14px;
+        margin-top: 0;
+    }
 }
 
 /* ─── Card Sticker Variables ─────────────────────────────────────────────── */
@@ -155,6 +220,74 @@
 
     --sticker-heart-top: -50px;
     --sticker-heart-right: 15px;
+}
+
+/* Tablet responsive sticker variables */
+@media (max-width: 1024px) {
+    :root {
+        --sticker-camera-w: 140px;
+        --sticker-phone-w: 100px;
+        --sticker-smiley-w: 100px;
+        --sticker-hand-w: 100px;
+        --sticker-heart-w: 120px;
+
+        --sticker-camera-top: -40px;
+        --sticker-camera-left: 100px;
+
+        --sticker-phone-top: -40px;
+        --sticker-phone-left: 130px;
+
+        --sticker-smiley-top: -45px;
+
+        --sticker-hand-top: -35px;
+
+        --sticker-heart-top: -45px;
+        --sticker-heart-right: 10px;
+    }
+}
+
+/* Mobile responsive sticker variables */
+@media (max-width: 768px) {
+    :root {
+        --sticker-camera-w: 120px;
+        --sticker-phone-w: 80px;
+        --sticker-smiley-w: 80px;
+        --sticker-hand-w: 80px;
+        --sticker-heart-w: 100px;
+
+        --sticker-camera-top: -35px;
+        --sticker-camera-left: 50%;
+
+        --sticker-phone-top: -35px;
+        --sticker-phone-left: 50%;
+
+        --sticker-smiley-top: -40px;
+
+        --sticker-hand-top: -30px;
+
+        --sticker-heart-top: -40px;
+        --sticker-heart-right: 50%;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --sticker-camera-w: 100px;
+        --sticker-phone-w: 70px;
+        --sticker-smiley-w: 70px;
+        --sticker-hand-w: 70px;
+        --sticker-heart-w: 80px;
+
+        --sticker-camera-top: -30px;
+
+        --sticker-phone-top: -30px;
+
+        --sticker-smiley-top: -35px;
+
+        --sticker-hand-top: -25px;
+
+        --sticker-heart-top: -35px;
+    }
 }
 
 /* ─── Card Stickers ──────────────────────────────────────────────────────── */
@@ -208,4 +341,141 @@
     top: var(--sticker-heart-top);
     right: var(--sticker-heart-right);
     transform: rotate(1deg);
+}
+
+/* Mobile responsive sticker positioning */
+@media (max-width: 768px) {
+    .card-sticker.sticker-camera {
+        left: 50%;
+        transform: translateX(-50%) rotate(3deg);
+    }
+    
+    .card-sticker.sticker-phone {
+        left: 50%;
+        transform: translateX(-50%) rotate(1deg);
+    }
+    
+    .card-sticker.sticker-smiley {
+        left: 50%;
+        transform: translateX(-50%) rotate(4deg);
+    }
+    
+    .card-sticker.sticker-hand {
+        left: 50%;
+        transform: translateX(-50%) rotate(8deg);
+    }
+    
+    .card-sticker.sticker-heart {
+        right: 50%;
+        transform: translateX(50%) rotate(1deg);
+    }
+}
+
+/* ─── Simple Responsive Overrides (JavaScript Controlled) ─────────────── */
+@media (max-width: 1024px) {
+    .cards-wrapper {
+        margin: 80px auto 10px 50px;
+    }
+}
+
+@media (max-width: 768px) {
+    .cards-wrapper {
+        margin: 60px auto 10px 0;
+        padding: 0 20px;
+    }
+    
+    .card-title {
+        text-align: center;
+        font-size: 1.6rem;
+    }
+    
+    .card-list li {
+        text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .cards-wrapper {
+        margin: 40px auto 10px 0;
+        padding: 0 15px;
+    }
+    
+    .card-title {
+        font-size: 1.4rem;
+    }
+}
+
+/* ─── Title Container Responsive Styles ───────────────────────────────────── */
+.title-container {
+    margin-bottom: 80px;
+    text-align: center;
+    position: relative;
+}
+
+@media (max-width: 1024px) {
+    .title-container {
+        margin-bottom: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .title-container {
+        margin-bottom: 40px;
+        padding: 0 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title-container {
+        margin-bottom: 30px;
+        padding: 0 15px;
+    }
+}
+
+.main-title {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    font-family: 'Epilogue', sans-serif;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 1024px) {
+    .main-title {
+        font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+        letter-spacing: -1.5px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-title {
+        font-size: clamp(2rem, 4vw, 3rem);
+        letter-spacing: -1.2px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-title {
+        font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+        letter-spacing: -1px;
+        margin-bottom: 12px;
+    }
+}
+
+ 
+
+@media (max-width: 768px) {
+    .title-underline-svg {
+        width: clamp(80px, 12vw, 120px);
+        margin-top: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .title-underline-svg {
+        width: clamp(60px, 10vw, 100px);
+        margin-top: 6px;
+    }
 }

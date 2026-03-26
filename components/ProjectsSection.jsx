@@ -81,34 +81,44 @@ const projects = [
   }
 ];
 
+// ── helper: set all theme vars at once ─────────────────────────────────────
+function setTheme(el, dark) {
+  if (dark) {
+    el.style.setProperty("--pt-bg",          "#0c0c0c");
+    el.style.setProperty("--pt-surface",     "#141414");
+    el.style.setProperty("--pt-text",        "#f0ece4");
+    el.style.setProperty("--pt-muted",       "#5a5a5a");
+    el.style.setProperty("--pt-border",      "rgba(255,255,255,0.08)");
+    el.style.setProperty("--pt-border-card", "rgba(255,255,255,0.07)");
+  } else {
+    el.style.setProperty("--pt-bg",          "#f0ebe6");
+    el.style.setProperty("--pt-surface",     "#e8e2dc");
+    el.style.setProperty("--pt-text",        "#1a1714");
+    el.style.setProperty("--pt-muted",       "#9a9088");
+    el.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
+    el.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+  }
+}
+
 export default function ProjectsSection() {
   const pinContainerRef = useRef(null);
-  const viewportRef = useRef(null);
-  const trackRef = useRef(null);
-  const headingRef = useRef(null);
-  const progressRef = useRef(null);
-  const labelRef = useRef(null);
+  const viewportRef     = useRef(null);
+  const trackRef        = useRef(null);
+  const headingRef      = useRef(null);
+  const progressRef     = useRef(null);
+  const labelRef        = useRef(null);
 
   useEffect(() => {
-    const track = trackRef.current;
-    const viewport = viewportRef.current;
+    const track     = trackRef.current;
+    const viewport  = viewportRef.current;
     const container = pinContainerRef.current;
     const isDesktop = () => window.innerWidth > 1024;
-
     const getDistance = () => track.scrollWidth - viewport.offsetWidth;
 
-    // ── Set light theme on outer container (always) ─────────────────
-    container.style.setProperty("--pt-bg",          "#f0ebe6");
-    container.style.setProperty("--pt-surface",     "#e8e2dc");
-    container.style.setProperty("--pt-text",        "#1a1714");
-    container.style.setProperty("--pt-muted",       "#9a9088");
-    container.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
-    container.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+    // ── initial light theme ──────────────────────────────────────────
+    setTheme(container, false);
 
-    // ── Build the dark overlay (circle expand) ───────────────────────
-    // A full-size dark layer sits behind content; clip-path grows from
-    // a tiny circle at center-bottom into full coverage on scroll.
-    // Text/card colors flip once the overlay reaches ~40% coverage.
+    // ── dark overlay (circle expand) ────────────────────────────────
     const overlay = document.createElement("div");
     overlay.id = "dark-overlay";
     overlay.style.cssText = [
@@ -124,7 +134,6 @@ export default function ProjectsSection() {
     container.style.position = "relative";
     container.insertBefore(overlay, container.firstChild);
 
-    // Lift all real children above the overlay
     Array.from(container.children).forEach((child) => {
       if (child !== overlay) {
         child.style.position = "relative";
@@ -132,77 +141,67 @@ export default function ProjectsSection() {
       }
     });
 
-    // ── Heading entrance ─────────────────────────────────────────────
+    // ── heading entrance ────────────────────────────────────────────
     gsap.fromTo(
       headingRef.current,
       { y: 50, opacity: 0 },
       {
         y: 0, opacity: 1, duration: 1, ease: "power3.out",
-        scrollTrigger: {
-          trigger: container,
-          start: "top 85%",
-        },
+        scrollTrigger: { trigger: container, start: "top 85%" },
       }
     );
 
-    // ── Card stagger entrance ────────────────────────────────────────
+    // ── card stagger entrance ────────────────────────────────────────
     gsap.fromTo(
       ".proj-card",
       { y: 60, opacity: 0, scale: 0.94 },
       {
         y: 0, opacity: 1, scale: 1,
         stagger: 0.07, duration: 0.8, ease: "power3.out",
-        scrollTrigger: {
-          trigger: container,
-          start: "top 80%",
-        },
+        scrollTrigger: { trigger: container, start: "top 80%" },
       }
     );
 
-    // ── Circle Expand overlay driven by scroll ────────────────────────
-    // The clip-path radius goes from 0 → 150% (covers full diagonal).
-    // Theme variables flip at 40% scroll so text is readable on dark.
+    // ── Circle expand + theme flip ───────────────────────────────────
+    //
+    // CHANGES vs original:
+    //  1. easing  → ease-out-quad (p*(2-p)) instead of quart
+    //              so the circle grows fast early and slows at the end
+    //  2. FLIP_AT → 0.18  (was 0.38) — theme vars swap at ~18% scroll
+    //  3. origin  → "50% 50%" (center) instead of "50% 60%"
+    //              so the reveal feels centered and more natural
+    //
+    const FLIP_AT = 0.18;
     let flippedToDark = false;
 
     ScrollTrigger.create({
       trigger: container,
       start: "top top",
       end: () => `+=${isDesktop() ? getDistance() : window.innerHeight * 2}`,
-      scrub: 0.6,                 // tighter scrub = feels more physical
+      scrub: 0.6,
       invalidateOnRefresh: true,
       onUpdate(self) {
         const p = self.progress;
 
-        // ease-in-quart: nearly no movement early → explosive expansion
-        const eased = p * p * p * p;
+        // ease-out-quad: fast start, gradual finish
+        const eased  = p * (2 - p);
         const radius = eased * 150;
-        overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 60%)`;
+        overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 50%)`;
 
-        // Flip CSS vars once coverage is meaningful (~40% scroll)
-        if (p >= 0.38 && !flippedToDark) {
+        if (p >= FLIP_AT && !flippedToDark) {
           flippedToDark = true;
-          container.style.setProperty("--pt-bg",          "#0c0c0c");
-          container.style.setProperty("--pt-surface",     "#141414");
-          container.style.setProperty("--pt-text",        "#f0ece4");
-          container.style.setProperty("--pt-muted",       "#5a5a5a");
-          container.style.setProperty("--pt-border",      "rgba(255,255,255,0.08)");
-          container.style.setProperty("--pt-border-card", "rgba(255,255,255,0.07)");
-        } else if (p < 0.38 && flippedToDark) {
+          setTheme(container, true);
+        } else if (p < FLIP_AT && flippedToDark) {
           flippedToDark = false;
-          container.style.setProperty("--pt-bg",          "#f0ebe6");
-          container.style.setProperty("--pt-surface",     "#e8e2dc");
-          container.style.setProperty("--pt-text",        "#1a1714");
-          container.style.setProperty("--pt-muted",       "#9a9088");
-          container.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
-          container.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+          setTheme(container, false);
         }
       },
     });
 
+    // ── Horizontal scroll (desktop) ──────────────────────────────────
     let horizST = null;
 
     if (isDesktop()) {
-      // ── Horizontal scroll (desktop only) ─────────────────────────
       const horizAnim = gsap.to(track, {
         x: () => -getDistance(),
         ease: "none",
@@ -220,9 +219,9 @@ export default function ProjectsSection() {
         invalidateOnRefresh: true,
         animation: horizAnim,
         onUpdate(self) {
-          if (progressRef.current) {
+          if (progressRef.current)
             progressRef.current.style.width = `${self.progress * 100}%`;
-          }
+
           if (labelRef.current) {
             const idx = Math.min(
               projects.length - 1,
@@ -233,7 +232,7 @@ export default function ProjectsSection() {
         },
       });
 
-      // ── Image parallax (desktop only) ───────────────────────────
+      // image parallax
       gsap.utils.toArray(".card-img").forEach((img) => {
         gsap.fromTo(
           img,
@@ -264,7 +263,6 @@ export default function ProjectsSection() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
 
-        /* ── Theme tokens (set via JS, start light) ── */
         .pin-container {
           --pt-bg:          #f0ebe6;
           --pt-surface:     #e8e2dc;
@@ -276,11 +274,9 @@ export default function ProjectsSection() {
           background: var(--pt-bg);
           width: 100%;
           font-family: 'Syne', sans-serif;
-          /* Smooth the JS var flip for text/cards */
           transition: background 0.05s linear;
         }
 
-        /* Header */
         .proj-header {
           padding: 100px 72px 48px;
           display: flex;
@@ -325,7 +321,6 @@ export default function ProjectsSection() {
           background: var(--pt-muted); display:inline-block;
         }
 
-        /* Progress bar */
         .scroll-progress-wrap {
           padding: 0 72px 36px;
           display: flex; align-items: center; gap: 16px;
@@ -345,13 +340,11 @@ export default function ProjectsSection() {
           min-width: 48px; text-align: right;
         }
 
-        /* Viewport */
         .proj-viewport {
           overflow: hidden;
           padding: 0 72px 80px;
         }
 
-        /* Track */
         .proj-track {
           display: flex;
           gap: 24px;
@@ -360,7 +353,6 @@ export default function ProjectsSection() {
           align-items: flex-start;
         }
 
-        /* Card */
         .proj-card {
           width: clamp(300px, 26vw, 420px);
           border-radius: 16px;
@@ -375,7 +367,6 @@ export default function ProjectsSection() {
         .proj-card:hover { border-color: var(--pt-muted); }
         .proj-card:nth-child(even) { margin-top: 52px; }
 
-        /* Image */
         .card-img-wrap {
           width: 100%; aspect-ratio: 4/3;
           overflow: hidden; position: relative;
@@ -405,7 +396,6 @@ export default function ProjectsSection() {
           padding: 5px 12px; border-radius: 100px;
         }
 
-        /* Body */
         .card-body { padding: 20px 22px 52px; }
         .card-name {
           font-size: clamp(18px, 2.2vw, 28px); font-weight: 700;
@@ -429,7 +419,6 @@ export default function ProjectsSection() {
           color: var(--pt-text); border-color: var(--pt-muted);
         }
 
-        /* Arrow */
         .card-arrow {
           position: absolute; bottom: 18px; right: 18px;
           width: 34px; height: 34px; border-radius: 50%;
@@ -443,7 +432,6 @@ export default function ProjectsSection() {
           transform: rotate(45deg); border-color: var(--pt-text);
         }
 
-        /* ── Responsive ── */
         @media (max-width: 1024px) {
           .proj-header { padding: 64px 32px 36px; }
           .scroll-progress-wrap { padding: 0 32px 28px; }
@@ -471,7 +459,6 @@ export default function ProjectsSection() {
         }
       `}</style>
 
-      {/* ── Outer pin container — NO overflow:hidden ── */}
       <div className="pin-container" ref={pinContainerRef}>
 
         <div className="proj-header" ref={headingRef}>
@@ -486,7 +473,6 @@ export default function ProjectsSection() {
           </div>
         </div>
 
-        {/* Progress */}
         <div className="scroll-progress-wrap">
           <div className="scroll-progress-bar">
             <div className="scroll-progress-fill" ref={progressRef} />
@@ -496,7 +482,6 @@ export default function ProjectsSection() {
           </span>
         </div>
 
-        {/* Viewport clips the track */}
         <div className="proj-viewport" ref={viewportRef}>
           <div className="proj-track" ref={trackRef}>
             {projects.map((p) => (
@@ -517,9 +502,7 @@ export default function ProjectsSection() {
                     ))}
                   </div>
                 </div>
-                <a href={p.link} target="_blank" className="card-arrow">
-                  ↗
-                </a>
+                <a href={p.link} target="_blank" className="card-arrow">↗</a>
               </article>
             ))}
           </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import gsap from "gsap";
-import { Draggable } from "gsap/Draggable";
+import dynamic from 'next/dynamic';
+import { useState, useEffect } from 'react';
 
-gsap.registerPlugin(Draggable);
+const FallingText = dynamic(() => import('./FallingText'), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: '460px' }} />
+});
 
 const CHIPS = [
   { label: "HTML",         bg: "#FF6B35", tc: "#fff" },
@@ -22,220 +24,27 @@ const CHIPS = [
   { label: "Git",          bg: "#F05032", tc: "#fff" },
 ];
 
-const getRandom = (min, max) => Math.random() * (max - min) + min;
-
 export default function GSAPCardGrid() {
-  const sceneRef   = useRef(null);
-  const bodiesRef  = useRef([]);
-  const rafRef     = useRef(null);
-  const dragState  = useRef(null); // { body, offX, offY, prevMx, prevMy, mx, my }
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
-  // ─── physics tick ─────────────────────────────────────────────────────────
-  const tick = useCallback(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-    const W = scene.offsetWidth;
-    const H = scene.offsetHeight;
-    const DAMP = 0.984, MAX_V = 14, FRICTION = 0.995;
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 480);
+      setIsTablet(window.innerWidth > 480 && window.innerWidth <= 768);
+    };
 
-    bodiesRef.current.forEach((b) => {
-      if (b.dragging) return;
-      b.vx = Math.max(-MAX_V, Math.min(MAX_V, b.vx * DAMP));
-      b.vy = Math.max(-MAX_V, Math.min(MAX_V, b.vy * DAMP));
-      b.x += b.vx;
-      b.y += b.vy;
-      b.rv *= FRICTION;
-      b.rot += b.rv;
-      // wall bounce
-      if (b.x < 0)          { b.x = 0;         b.vx =  Math.abs(b.vx) * 0.7; b.rv *= -0.5; }
-      if (b.x + b.w > W)    { b.x = W - b.w;   b.vx = -Math.abs(b.vx) * 0.7; b.rv *= -0.5; }
-      if (b.y < 0)          { b.y = 0;         b.vy =  Math.abs(b.vy) * 0.7; b.rv *= -0.5; }
-      if (b.y + b.h > H-30) { b.y = H-30-b.h; b.vy = -Math.abs(b.vy) * 0.7; b.rv *= -0.5; }
-      applyTransform(b);
-    });
-
-    // collision pairs
-    const bs = bodiesRef.current;
-    for (let i = 0; i < bs.length; i++)
-      for (let j = i + 1; j < bs.length; j++)
-        resolveCollision(bs[i], bs[j]);
-
-    rafRef.current = requestAnimationFrame(tick);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ─── helpers ──────────────────────────────────────────────────────────────
-  function applyTransform(b) {
-    b.el.style.left      = b.x + "px";
-    b.el.style.top       = b.y + "px";
-    b.el.style.transform = `rotate(${b.rot}deg)`;
-  }
+  const chipsText = CHIPS.map(chip => chip.label).join(' ');
+  const highlightWords = CHIPS.map(chip => chip.label);
 
-  function resolveCollision(a, b) {
-    const ax = a.x + a.w / 2, ay = a.y + a.h / 2;
-    const bx = b.x + b.w / 2, by = b.y + b.h / 2;
-    const dx = bx - ax, dy = by - ay;
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-    const minDist = ((a.w + b.w) / 2 + (a.h + b.h) / 2) / 2 * 1.05;
-    if (dist > minDist) return;
-
-    const nx = dx / dist, ny = dy / dist;
-    const overlap = minDist - dist;
-    if (!a.dragging) { a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5; }
-    if (!b.dragging) { b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5; }
-
-    const rvx = b.vx - a.vx, rvy = b.vy - a.vy;
-    const dot = rvx * nx + rvy * ny;
-    if (dot > 0) return;
-
-    const restitution = 0.65;
-    const impulse = -(1 + restitution) * dot / (1 / a.mass + 1 / b.mass);
-    if (!a.dragging) { a.vx -= (impulse / a.mass) * nx; a.vy -= (impulse / a.mass) * ny; }
-    if (!b.dragging) { b.vx += (impulse / b.mass) * nx; b.vy += (impulse / b.mass) * ny; }
-
-    // spin transfer
-    const spinT = (a.rv - b.rv) * 0.3;
-    if (!a.dragging) a.rv += spinT;
-    if (!b.dragging) b.rv -= spinT;
-
-    // flash effect via GSAP
-    gsap.fromTo(b.el, { filter: "brightness(1.5)" }, { filter: "brightness(1)", duration: 0.25 });
-    gsap.fromTo(a.el, { filter: "brightness(1.5)" }, { filter: "brightness(1)", duration: 0.25 });
-  }
-
-  // ─── init ─────────────────────────────────────────────────────────────────
-  const initBodies = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    const scene = sceneRef.current;
-    if (!scene) return;
-    const W = scene.offsetWidth, H = scene.offsetHeight;
-
-    // remove old chips
-    scene.querySelectorAll(".skill-chip").forEach((el) => el.remove());
-    bodiesRef.current = [];
-
-    CHIPS.forEach((data, i) => {
-      const el = document.createElement("div");
-      el.className = "skill-chip";
-      el.textContent = data.label;
-      Object.assign(el.style, {
-        position:       "absolute",
-        padding:        "9px 25px",
-        borderRadius:   "100px",
-        fontSize:       "12px",
-        fontWeight:     "500",
-        letterSpacing:  "0.07em",
-        textTransform:  "uppercase",
-        fontFamily:     "'DM Mono', monospace",
-        background:     data.bg,
-        color:          data.tc,
-        border:         "0.5px solid rgba(255,255,255,0.2)",
-        cursor:         "grab",
-        userSelect:     "none",
-        willChange:     "transform",
-        whiteSpace:     "nowrap",
-        zIndex:         String(i + 1),
-      });
-      scene.appendChild(el);
-
-      const w = el.offsetWidth, h = el.offsetHeight;
-      const body = {
-        el, w, h,
-        x:        getRandom(8, W - w - 8),
-        y:        getRandom(8, H - h - 40),
-        vx:       getRandom(-2, 2),
-        vy:       getRandom(-2, 2),
-        rot:      getRandom(-28, 28),
-        rv:       getRandom(-0.4, 0.4),
-        mass:     w * h,
-        dragging: false,
-      };
-      bodiesRef.current.push(body);
-      applyTransform(body);
-    });
-
-    // entrance animation
-    gsap.fromTo(
-      bodiesRef.current.map((b) => b.el),
-      { scale: 0, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.7, stagger: 0.045, ease: "back.out(1.7)" }
-    );
-
-    rafRef.current = requestAnimationFrame(tick);
-  }, [tick]);
-
-  // ─── pointer events ───────────────────────────────────────────────────────
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-
-    const onDown = (e) => {
-      const chip = e.target.closest(".skill-chip");
-      if (!chip) return;
-      const body = bodiesRef.current.find((b) => b.el === chip);
-      if (!body) return;
-      e.preventDefault();
-      const sr  = scene.getBoundingClientRect();
-      const cr  = chip.getBoundingClientRect();
-      const mx  = e.clientX - sr.left;
-      const my  = e.clientY - sr.top;
-      dragState.current = {
-        body,
-        offX:   e.clientX - cr.left,
-        offY:   e.clientY - cr.top,
-        prevMx: mx, prevMy: my,
-        mx, my,
-      };
-      body.dragging = true;
-      body.vx = 0; body.vy = 0;
-      chip.style.cursor  = "grabbing";
-      chip.style.zIndex  = "9999";
-      scene.setPointerCapture(e.pointerId);
-    };
-
-    const onMove = (e) => {
-      const ds = dragState.current;
-      if (!ds) return;
-      const sr = scene.getBoundingClientRect();
-      ds.prevMx = ds.mx; ds.prevMy = ds.my;
-      ds.mx = e.clientX - sr.left;
-      ds.my = e.clientY - sr.top;
-      const b = ds.body;
-      b.x = Math.max(0, Math.min(scene.offsetWidth  - b.w, ds.mx - ds.offX));
-      b.y = Math.max(0, Math.min(scene.offsetHeight - b.h - 30, ds.my - ds.offY));
-      applyTransform(b);
-    };
-
-    const onUp = (e) => {
-      const ds = dragState.current;
-      if (!ds) return;
-      const THROW = 4.5;
-      ds.body.vx = (ds.mx - ds.prevMx) * THROW;
-      ds.body.vy = (ds.my - ds.prevMy) * THROW;
-      ds.body.dragging = false;
-      ds.body.el.style.cursor = "grab";
-      ds.body.el.style.zIndex = "";
-      dragState.current = null;
-    };
-
-    scene.addEventListener("pointerdown", onDown);
-    scene.addEventListener("pointermove", onMove);
-    scene.addEventListener("pointerup",   onUp);
-    return () => {
-      scene.removeEventListener("pointerdown", onDown);
-      scene.removeEventListener("pointermove", onMove);
-      scene.removeEventListener("pointerup",   onUp);
-    };
-  }, []);
-
-  // ─── mount / unmount ──────────────────────────────────────────────────────
-  useEffect(() => {
-    // wait a frame for layout
-    const id = setTimeout(initBodies, 60);
-    return () => {
-      clearTimeout(id);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [initBodies]);
+  // Adjust physics parameters for mobile devices
+  const gravity = isMobile ? 0.4 : isTablet ? 0.5 : 0.56;
+  const mouseConstraintStiffness = isMobile ? 0.7 : 0.9;
 
   return (
     <>
@@ -243,11 +52,26 @@ export default function GSAPCardGrid() {
         .skills-scene {
           position: relative;
           width: 100%;
-          height: 560px;
+          height: 460px;
           background: #0c0c0c;
           border-radius: 20px;
           overflow: hidden;
           cursor: default;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+          .skills-scene {
+            height: 380px;
+            border-radius: 16px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-scene {
+            height: 320px;
+            border-radius: 12px;
+          }
         }
 
         /* big bg word */
@@ -260,10 +84,22 @@ export default function GSAPCardGrid() {
           pointer-events: none;
           user-select: none;
           font-family: 'Syne', sans-serif;
-          font-size: clamp(60px, 14vw, 140px);
+          font-size: clamp(32px, 8vw, 80px);
           font-weight: 800;
           color: rgba(255,255,255,0.04);
           letter-spacing: -0.05em;
+        }
+
+        @media (max-width: 768px) {
+          .skills-bg-word {
+            font-size: clamp(28px, 7vw, 60px);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-bg-word {
+            font-size: clamp(24px, 6vw, 48px);
+          }
         }
 
         /* corner hint */
@@ -278,6 +114,21 @@ export default function GSAPCardGrid() {
           color: rgba(255,255,255,0.2);
           pointer-events: none;
           text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+          .skills-hint {
+            font-size: 10px;
+            bottom: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-hint {
+            font-size: 9px;
+            bottom: 10px;
+            letter-spacing: 0.1em;
+          }
         }
 
         /* shuffle button */
@@ -302,11 +153,43 @@ export default function GSAPCardGrid() {
           color: rgba(255,255,255,0.9);
         }
 
+        @media (max-width: 768px) {
+          .skills-shuffle {
+            font-size: 10px;
+            padding: 5px 12px;
+            top: 12px;
+            right: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-shuffle {
+            font-size: 9px;
+            padding: 4px 10px;
+            top: 10px;
+            right: 10px;
+          }
+        }
+
         /* section wrapper */
         .skills-section {
           padding: 10px 10px;
-          max-width:1400px ;
-          margin:auto;
+          max-width: 800px;
+          margin: auto;
+        }
+
+        @media (max-width: 768px) {
+          .skills-section {
+            padding: 8px 8px;
+            max-width: 100%;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-section {
+            padding: 6px 6px;
+            max-width: 100%;
+          }
         }
 
         .skills-header {
@@ -318,13 +201,41 @@ export default function GSAPCardGrid() {
           gap: 16px;
         }
 
+        @media (max-width: 768px) {
+          .skills-header {
+            margin-bottom: 24px;
+            gap: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-header {
+            margin-bottom: 20px;
+            gap: 8px;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+
         .skills-title {
-          font-size: clamp(36px, 5vw, 64px);
+          font-size: clamp(28px, 4.5vw, 64px);
           font-weight: 800;
           color: #f0ece4;
           letter-spacing: -0.04em;
           line-height: 1;
           margin: 0;
+        }
+
+        @media (max-width: 768px) {
+          .skills-title {
+            font-size: clamp(24px, 4vw, 48px);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-title {
+            font-size: clamp(20px, 3.5vw, 36px);
+          }
         }
         .skills-title em {
           font-style: italic;
@@ -341,17 +252,84 @@ export default function GSAPCardGrid() {
           text-transform: uppercase;
           margin-bottom: 6px;
         }
+
+        @media (max-width: 768px) {
+          .skills-sub {
+            font-size: 10px;
+            letter-spacing: 0.12em;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .skills-sub {
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+          }
+        }
+
+        /* Custom styles for FallingText chips */
+        .falling-text-container .word {
+          padding: 9px 25px;
+          border-radius: 100px;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          font-family: 'DM Mono', monospace;
+          border: 0.5px solid rgba(255,255,255,0.2);
+          cursor: grab;
+          user-select: none;
+          white-space: nowrap;
+          margin: 0 4px;
+        }
+
+        @media (max-width: 768px) {
+          .falling-text-container .word {
+            padding: 7px 20px;
+            font-size: 11px;
+            margin: 0 3px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .falling-text-container .word {
+            padding: 6px 16px;
+            font-size: 10px;
+            margin: 0 2px;
+            letter-spacing: 0.05em;
+          }
+        }
+
+        .falling-text-container .word:nth-child(1) { background: #FF6B35; color: #fff; }
+        .falling-text-container .word:nth-child(2) { background: #7C3AED; color: #fff; }
+        .falling-text-container .word:nth-child(3) { background: #F59E0B; color: #1a1200; }
+        .falling-text-container .word:nth-child(4) { background: #0EA5E9; color: #fff; }
+        .falling-text-container .word:nth-child(5) { background: #18181b; color: #f4f4f5; }
+        .falling-text-container .word:nth-child(6) { background: #3178C6; color: #fff; }
+        .falling-text-container .word:nth-child(7) { background: #0AE448; color: #002b10; }
+        .falling-text-container .word:nth-child(8) { background: #06B6D4; color: #fff; }
+        .falling-text-container .word:nth-child(9) { background: #764ABC; color: #fff; }
+        .falling-text-container .word:nth-child(10) { background: #FF4154; color: #fff; }
+        .falling-text-container .word:nth-child(11) { background: #5A29E4; color: #fff; }
+        .falling-text-container .word:nth-child(12) { background: #CC6699; color: #fff; }
+        .falling-text-container .word:nth-child(13) { background: #F05032; color: #fff; }
       `}</style>
 
       <section className="skills-section">
-        <div className="skills-scene" ref={sceneRef}>
+        <div className="skills-scene">
           <div className="skills-bg-word">SKILLS</div>
-          <button
-            className="skills-shuffle"
-            onClick={initBodies}
-          >
-            shuffle ↺
-          </button>
+          <FallingText
+            text={chipsText}
+            highlightWords={highlightWords}
+            highlightClass="highlighted"
+            trigger="hover"
+            backgroundColor="transparent"
+            wireframes={false}
+            gravity={gravity}
+            fontSize="12px"
+            mouseConstraintStiffness={mouseConstraintStiffness}
+          />
           <div className="skills-hint">grab a card and throw it</div>
         </div>
       </section>
