@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import RippleGrid from './RippleGrid'; // Performance-optimized alternative to Galaxy
+import GlitchText from './GlitchText';
+import Magnet from './Magnet';
 
 export default function VimeoHero() {
     const iframeRef = useRef(null);
@@ -9,6 +12,7 @@ export default function VimeoHero() {
     const bubbleRef = useRef(null);
     const titleRef = useRef(null);
     const controlsRef = useRef(null);
+    const cvBtnRef = useRef(null);
 
     // Interactive refs
     const orb1Ref = useRef(null);
@@ -18,10 +22,8 @@ export default function VimeoHero() {
     const badgeTRRef = useRef(null);
     const badgeMLRef = useRef(null);
 
-    const [isPlaying, setIsPlaying] = useState(true);
-    const [isMuted, setIsMuted] = useState(true);
+     const [isMuted, setIsMuted] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
 
     // Native video loads immediately enough that we don't need a heavy ready listener.
     // We already handle `setIsLoaded(true)` directly on the <video onLoadedData={...}> element.
@@ -235,17 +237,29 @@ export default function VimeoHero() {
         };
     }, []);
 
-    /* ── Controls ── */
-    const togglePlay = (e) => {
-        if (e) e.stopPropagation();
-        if (!iframeRef.current) return;
-        if (isPlaying) {
-            iframeRef.current.pause();
-        } else {
-            iframeRef.current.play();
-        }
-        setIsPlaying(p => !p);
-    };
+    /* ────────────────────────────────────────────────────
+       ⑤ CV Button infinite glow pulse 
+    ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const cvBtn = cvBtnRef.current;
+        if (!cvBtn) return;
+
+        gsap.to(cvBtn, {
+            boxShadow: '0px 0px 16px 2px rgba(255, 255, 255, 0.5), inset 0px 0px 4px 1px rgba(255, 255, 255, 0.2)',
+            borderColor: 'rgba(255, 255, 255, 0.9)',
+            background: 'rgba(255, 255, 255, 0.15)',
+            duration: 1.2,
+            repeat: -1,
+            yoyo: true,
+            ease: 'sine.inOut'
+        });
+
+        return () => {
+            gsap.killTweensOf(cvBtn);
+        };
+    }, []);
+
+   
 
     const toggleMute = (e) => {
         if (e) e.stopPropagation();
@@ -284,35 +298,35 @@ export default function VimeoHero() {
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__mute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
                             {/* Document body */}
-                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="2.5"/>
+                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="2.5" />
                             {/* Photo placeholder */}
-                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.7"/>
+                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.7" />
                             {/* Name line */}
-                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor"/>
-                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.5"/>
+                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" />
+                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.5" />
                             {/* Divider */}
-                            <line x1="14" y1="28" x2="40" y2="28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                            <line x1="14" y1="28" x2="40" y2="28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
                             {/* Text lines */}
-                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
-                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
-                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
+                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
+                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
+                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
                         </svg>
                     </div>
                     {/* CV icon with slash — muted, click to unmute */}
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__unmute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
                             {/* Document body (dimmed) */}
-                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" fillOpacity="0.07" stroke="currentColor" strokeWidth="2.5" opacity="0.3"/>
+                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" fillOpacity="0.07" stroke="currentColor" strokeWidth="2.5" opacity="0.3" />
                             {/* Photo placeholder (dimmed) */}
-                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.3"/>
+                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.3" />
                             {/* Lines (dimmed) */}
-                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
-                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
-                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
-                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
-                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
+                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" opacity="0.3" />
+                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
+                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
+                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
+                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
                             {/* Slash */}
-                            <line x1="9" y1="45" x2="45" y2="9" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round"/>
+                            <line x1="9" y1="45" x2="45" y2="9" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
                         </svg>
                     </div>
                 </div>
@@ -320,36 +334,24 @@ export default function VimeoHero() {
 
             {/* ── Main hero container ── */}
             <div
-                className={`vimeo-hero ${isPlaying ? 'is-playing' : 'is-paused'} ${isMuted ? 'is-muted' : 'is-unmuted'}`}
+                className={`vimeo-hero   ${isMuted ? 'is-muted' : 'is-unmuted'}`}
                 ref={playerRef}
                 onClick={toggleMute}
             >
-                {/* ── Background layers (active while no video src) ── */}
-                {/* Animated gradient orbs — also targeted by GSAP parallax */}
-                <div className="vimeo-hero__orb vimeo-hero__orb--1" ref={orb1Ref} />
-                <div className="vimeo-hero__orb vimeo-hero__orb--2" ref={orb2Ref} />
-                <div className="vimeo-hero__orb vimeo-hero__orb--3" ref={orb3Ref} />
+                {/* ── Background layers (PERFORMANCE OPTIMIZED) ── */}
+                <div style={{position: 'relative', height: '100%', overflow: 'hidden'}}>
+                  <RippleGrid
+                    enableRainbow={false}
+                    gridColor="#ffffff"
+                    rippleIntensity={0.05}
+                    gridSize={10}
+                    gridThickness={15}
+                    mouseInteraction={true}
+                    mouseInteractionRadius={2.0}
+                    opacity={0.8}
+                  />
+                </div>
 
-                {/* Subtle grid pattern */}
-                <div className="vimeo-hero__grid" />
-
-                {/* Film-grain texture */}
-                <div className="vimeo-hero__grain" />
-
-                {/* Video (hidden until src is provided) */}
-                <video
-                    ref={iframeRef}
-                    // src="/your-personal-video.mp4"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="vimeo-hero__iframe"
-                    style={{ objectFit: 'cover' }}
-                />
-
-                {/* Gradient fade */}
-                <div className="vimeo-hero__fade" />
 
                 {/* ── Floating info badges — magnetic via GSAP ── */}
                 <div className="vimeo-hero__badge vimeo-hero__badge--tl" ref={badgeTLRef}>
@@ -374,7 +376,14 @@ export default function VimeoHero() {
 
                         {/* "frontend" + smiley */}
                         <span className="vimeo-hero__word is--relative">
-                            <span>frontend </span>
+                            <GlitchText
+                                speed={1}
+                                enableShadows
+                                enableOnHover={false}
+                                className='custom-class'
+                            >
+                                frontend
+                            </GlitchText>
                             <div className="home-header__smiley">
                                 <img
                                     src="/assets/VimeoHero SVG/smiley-face.svg"
@@ -415,6 +424,31 @@ export default function VimeoHero() {
                 {/* ① Controls — bottom LEFT: pause/play + fullscreen */}
                 <div className="vimeo-hero__controls" ref={controlsRef} onClick={(e) => e.stopPropagation()}>
 
+                    <Magnet padding={50} disabled={false} magnetStrength={50}>
+                        <a 
+                            ref={cvBtnRef}
+                            href="/assets/Abdulrahman-Elsaeid_next.js&&react.js.pdf" 
+                            download="Abdulrahman-Elsaeid_CV.pdf"
+                            className="vimeo-hero__btn"
+                            style={{ 
+                                textDecoration: 'none', 
+                                width: 'auto', 
+                                padding: '0 16px',
+                                gap: '8px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase'
+                            }}
+                        >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            CV
+                        </a>
+                    </Magnet>
 
                     {/* Fullscreen */}
                     <button className="vimeo-hero__btn" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>

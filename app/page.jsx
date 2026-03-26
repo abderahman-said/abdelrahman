@@ -14,6 +14,7 @@ import CrossedBanners from '@/components/CrossedBanners';
 
 import HorizontalWords from '@/components/HorizontalWords';
 import ProjectsSection from '@/components/ProjectsSection';
+// import ConvergenceSection from '@/components/ConvergenceSection';
 import GSAPCardGrid from '@/components/GSAPCardGrid';
 
 export default function Home() {
@@ -29,6 +30,7 @@ export default function Home() {
             <HorizontalWords />
             <main>
                 <ProjectsSection />
+                {/* <ConvergenceSection /> */}
                 <div className="content-section motion-cards-wrapper">
                     <MotionCards />
                 </div>

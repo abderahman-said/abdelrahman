@@ -39,7 +39,7 @@
     margin: 12px auto;
     overflow: hidden;
     /* Rich dark background instead of solid black */
-    background: radial-gradient(ellipse at 30% 20%, #1a1230 0%, #0a0a0f 55%), #0a0a0f;
+ background: #000;
     border-radius: 24px;
     cursor: url("/assets/Cursor SVG/cursor-pointer.svg") 2 0, pointer;
 }
@@ -52,24 +52,7 @@
     pointer-events: none;
     z-index: 1;
 }
-.vimeo-hero__orb--1 {
-    width: 55vw; height: 55vw;
-    top: -20%; left: -15%;
-    background: radial-gradient(circle, rgba(120, 60, 220, 0.35) 0%, transparent 70%);
-    animation: orb-drift-1 18s ease-in-out infinite;
-}
-.vimeo-hero__orb--2 {
-    width: 45vw; height: 45vw;
-    bottom: -10%; right: -10%;
-    background: radial-gradient(circle, rgba(255, 100, 60, 0.22) 0%, transparent 70%);
-    animation: orb-drift-2 22s ease-in-out infinite;
-}
-.vimeo-hero__orb--3 {
-    width: 35vw; height: 35vw;
-    top: 20%; right: 15%;
-    background: radial-gradient(circle, rgba(40, 160, 230, 0.18) 0%, transparent 70%);
-    animation: orb-drift-3 16s ease-in-out infinite;
-}
+ 
 
 /* ── Film-grain overlay ── */
 .vimeo-hero__grain {
@@ -261,7 +244,7 @@
 /* ─── ⑤ Smiley — NO animation ─────────────────── */
 .home-header__smiley {
     position: absolute;
-    top: -0.35em;
+    top: -0.85em;
     left: 0.4em;
     width: 1em;
     height: 1em;

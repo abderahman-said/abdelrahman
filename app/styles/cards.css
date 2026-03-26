@@ -49,7 +49,7 @@
 
 /* ─── Card Color Variants ────────────────────────────────────────────────── */
 .card-green {
-    background-color: var(--color-green);
+    background-color: #0f172a;
     left: calc(50% - 600px);
     top: 50px;
     transform: rotate(4deg);
@@ -57,7 +57,7 @@
 }
 
 .card-darkblue {
-    background-color: var(--color-lightblue);
+    background-color: #d2ceca;
     color: var(--color-dark);
     left: calc(50% - 330px);
     top: 100px;
@@ -66,8 +66,7 @@
 }
 
 .card-orange {
-    background-color: var(--color-orange);
-    color: var(--color-dark);
+    background-color: #000;
     left: calc(50% - 80px);
     top: 20px;
     transform: rotate(5deg);
@@ -75,7 +74,7 @@
 }
 
 .card-maroon {
-    background-color: var(--color-maroon);
+    background-color:#94a3b8;
     left: calc(50% + 180px);
     top: 30px;
     transform: rotate(-8deg);

@@ -82,12 +82,6 @@ const projects = [
 ];
 
 export default function ProjectsSection() {
-  /**
-   * Architecture:
-   *  pinContainerRef  — GSAP pins this. Must have NO overflow:hidden.
-   *  viewportRef      — Has overflow:hidden. Clips the moving track.
-   *  trackRef         — The flex-row that GSAP translates on X.
-   */
   const pinContainerRef = useRef(null);
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
@@ -98,25 +92,60 @@ export default function ProjectsSection() {
   useEffect(() => {
     const track = trackRef.current;
     const viewport = viewportRef.current;
+    const container = pinContainerRef.current;
     const isDesktop = () => window.innerWidth > 1024;
 
-    // How far the track needs to travel
     const getDistance = () => track.scrollWidth - viewport.offsetWidth;
 
-    // ── Heading entrance ──────────────────────────────────────────────
+    // ── Set light theme on outer container (always) ─────────────────
+    container.style.setProperty("--pt-bg",          "#f0ebe6");
+    container.style.setProperty("--pt-surface",     "#e8e2dc");
+    container.style.setProperty("--pt-text",        "#1a1714");
+    container.style.setProperty("--pt-muted",       "#9a9088");
+    container.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
+    container.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+
+    // ── Build the dark overlay (circle expand) ───────────────────────
+    // A full-size dark layer sits behind content; clip-path grows from
+    // a tiny circle at center-bottom into full coverage on scroll.
+    // Text/card colors flip once the overlay reaches ~40% coverage.
+    const overlay = document.createElement("div");
+    overlay.id = "dark-overlay";
+    overlay.style.cssText = [
+      "position:absolute",
+      "inset:0",
+      "background:#0c0c0c",
+      "pointer-events:none",
+      "z-index:0",
+      "clip-path:circle(0% at 50% 60%)",
+      "will-change:clip-path",
+    ].join(";");
+
+    container.style.position = "relative";
+    container.insertBefore(overlay, container.firstChild);
+
+    // Lift all real children above the overlay
+    Array.from(container.children).forEach((child) => {
+      if (child !== overlay) {
+        child.style.position = "relative";
+        child.style.zIndex   = "1";
+      }
+    });
+
+    // ── Heading entrance ─────────────────────────────────────────────
     gsap.fromTo(
       headingRef.current,
       { y: 50, opacity: 0 },
       {
         y: 0, opacity: 1, duration: 1, ease: "power3.out",
         scrollTrigger: {
-          trigger: pinContainerRef.current,
+          trigger: container,
           start: "top 85%",
         },
       }
     );
 
-    // ── Card stagger entrance ─────────────────────────────────────────
+    // ── Card stagger entrance ────────────────────────────────────────
     gsap.fromTo(
       ".proj-card",
       { y: 60, opacity: 0, scale: 0.94 },
@@ -124,16 +153,56 @@ export default function ProjectsSection() {
         y: 0, opacity: 1, scale: 1,
         stagger: 0.07, duration: 0.8, ease: "power3.out",
         scrollTrigger: {
-          trigger: pinContainerRef.current,
+          trigger: container,
           start: "top 80%",
         },
       }
     );
 
+    // ── Circle Expand overlay driven by scroll ────────────────────────
+    // The clip-path radius goes from 0 → 150% (covers full diagonal).
+    // Theme variables flip at 40% scroll so text is readable on dark.
+    let flippedToDark = false;
+
+    ScrollTrigger.create({
+      trigger: container,
+      start: "top top",
+      end: () => `+=${isDesktop() ? getDistance() : window.innerHeight * 2}`,
+      scrub: 0.6,                 // tighter scrub = feels more physical
+      invalidateOnRefresh: true,
+      onUpdate(self) {
+        const p = self.progress;
+
+        // ease-in-quart: nearly no movement early → explosive expansion
+        const eased = p * p * p * p;
+        const radius = eased * 150;
+        overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 60%)`;
+
+        // Flip CSS vars once coverage is meaningful (~40% scroll)
+        if (p >= 0.38 && !flippedToDark) {
+          flippedToDark = true;
+          container.style.setProperty("--pt-bg",          "#0c0c0c");
+          container.style.setProperty("--pt-surface",     "#141414");
+          container.style.setProperty("--pt-text",        "#f0ece4");
+          container.style.setProperty("--pt-muted",       "#5a5a5a");
+          container.style.setProperty("--pt-border",      "rgba(255,255,255,0.08)");
+          container.style.setProperty("--pt-border-card", "rgba(255,255,255,0.07)");
+        } else if (p < 0.38 && flippedToDark) {
+          flippedToDark = false;
+          container.style.setProperty("--pt-bg",          "#f0ebe6");
+          container.style.setProperty("--pt-surface",     "#e8e2dc");
+          container.style.setProperty("--pt-text",        "#1a1714");
+          container.style.setProperty("--pt-muted",       "#9a9088");
+          container.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
+          container.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+        }
+      },
+    });
+
     let horizST = null;
 
     if (isDesktop()) {
-      // ── Horizontal scroll (desktop only) ────────────────────────────
+      // ── Horizontal scroll (desktop only) ─────────────────────────
       const horizAnim = gsap.to(track, {
         x: () => -getDistance(),
         ease: "none",
@@ -141,7 +210,7 @@ export default function ProjectsSection() {
       });
 
       horizST = ScrollTrigger.create({
-        trigger: pinContainerRef.current,
+        trigger: container,
         start: "top top",
         end: () => `+=${getDistance()}`,
         scrub: 1,
@@ -164,7 +233,7 @@ export default function ProjectsSection() {
         },
       });
 
-      // ── Image parallax (desktop only) ─────────────────────────────
+      // ── Image parallax (desktop only) ───────────────────────────
       gsap.utils.toArray(".card-img").forEach((img) => {
         gsap.fromTo(
           img,
@@ -173,7 +242,7 @@ export default function ProjectsSection() {
             xPercent: 7,
             ease: "none",
             scrollTrigger: {
-              trigger: pinContainerRef.current,
+              trigger: container,
               start: "top top",
               end: () => `+=${getDistance()}`,
               scrub: 2.5,
@@ -195,23 +264,20 @@ export default function ProjectsSection() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
 
-        :root {
-          --bg      : #0c0c0c;
-          --surface : #141414;
-          --text    : #f0ece4;
-          --muted   : #5a5a5a;
-          --border  : rgba(255,255,255,0.07);
-        }
-
-        /* ─────────────────────────────────────────
-           PIN CONTAINER
-           CRITICAL: no overflow:hidden here — GSAP
-           needs to measure & pin this element freely
-        ───────────────────────────────────────── */
+        /* ── Theme tokens (set via JS, start light) ── */
         .pin-container {
-          background: var(--bg);
+          --pt-bg:          #f0ebe6;
+          --pt-surface:     #e8e2dc;
+          --pt-text:        #1a1714;
+          --pt-muted:       #9a9088;
+          --pt-border:      rgba(0,0,0,0.1);
+          --pt-border-card: rgba(0,0,0,0.08);
+
+          background: var(--pt-bg);
           width: 100%;
           font-family: 'Syne', sans-serif;
+          /* Smooth the JS var flip for text/cards */
+          transition: background 0.05s linear;
         }
 
         /* Header */
@@ -226,16 +292,18 @@ export default function ProjectsSection() {
         .proj-heading {
           font-size: clamp(40px, 7vw, 112px);
           font-weight: 800;
-          color: var(--text);
+          color: var(--pt-text);
           line-height: 0.92;
           letter-spacing: -0.04em;
           margin: 0;
+          transition: color 0.4s ease;
         }
         .proj-heading em {
           font-style: italic;
           font-weight: 400;
           color: transparent;
-          -webkit-text-stroke: 1.5px var(--text);
+          -webkit-text-stroke: 1.5px var(--pt-text);
+          transition: -webkit-text-stroke-color 0.4s ease;
         }
         .proj-meta {
           display: flex; flex-direction: column;
@@ -244,17 +312,17 @@ export default function ProjectsSection() {
         .proj-count {
           font-family: 'DM Mono', monospace;
           font-size: 11px; letter-spacing: 0.18em;
-          color: var(--muted); text-transform: uppercase;
+          color: var(--pt-muted); text-transform: uppercase;
         }
         .proj-hint {
           font-family: 'DM Mono', monospace;
-          font-size: 11px; color: var(--muted);
+          font-size: 11px; color: var(--pt-muted);
           display: flex; align-items: center; gap: 8px;
           letter-spacing: 0.08em;
         }
         .proj-hint::before {
           content:''; width:28px; height:1px;
-          background: var(--muted); display:inline-block;
+          background: var(--pt-muted); display:inline-block;
         }
 
         /* Progress bar */
@@ -264,73 +332,23 @@ export default function ProjectsSection() {
         }
         .scroll-progress-bar {
           flex: 1; height: 1px;
-          background: var(--border); border-radius: 2px; overflow: hidden;
+          background: var(--pt-border); border-radius: 2px; overflow: hidden;
         }
         .scroll-progress-fill {
           height: 100%; width: 0%;
-          background: var(--text);
+          background: var(--pt-text);
           transition: width 0.08s linear;
         }
         .scroll-progress-label {
           font-family: 'DM Mono', monospace;
-          font-size: 11px; letter-spacing: 0.12em; color: var(--muted);
+          font-size: 11px; letter-spacing: 0.12em; color: var(--pt-muted);
           min-width: 48px; text-align: right;
         }
 
-        /* ─────────────────────────────────────────
-           VIEWPORT  — this one clips the track.
-           Separate from pin-container so GSAP pin
-           is never blocked by overflow:hidden.
-        ───────────────────────────────────────── */
+        /* Viewport */
         .proj-viewport {
           overflow: hidden;
           padding: 0 72px 80px;
-        }
-
-        /* ─────────────────────────────────────────
-           RESPONSIVE — tablet & mobile
-        ───────────────────────────────────────── */
-        @media (max-width: 1024px) {
-          .proj-header {
-            padding: 64px 32px 36px;
-          }
-          .scroll-progress-wrap {
-            padding: 0 32px 28px;
-          }
-          /* Switch viewport to normal flow — no horizontal scroll */
-          .proj-viewport {
-            overflow: visible;
-            padding: 0 32px 64px;
-          }
-          /* Grid layout instead of horizontal flex track */
-          .proj-track {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            width: 100%;
-          }
-          /* Reset staggered offset on even cards */
-          .proj-card:nth-child(even) { margin-top: 0; }
-          .proj-card { width: 100%; }
-          /* Hide scroll hint on tablet — it's a vertical list now */
-          .proj-hint { display: none; }
-        }
-
-        @media (max-width: 640px) {
-          .proj-header {
-            padding: 48px 20px 28px;
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .proj-meta { align-items: flex-start; }
-          .scroll-progress-wrap { padding: 0 20px 24px; }
-          .proj-viewport { padding: 0 20px 48px; }
-          /* Single column on phones */
-          .proj-track {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .card-body { padding: 16px 18px 48px; }
         }
 
         /* Track */
@@ -347,14 +365,14 @@ export default function ProjectsSection() {
           width: clamp(300px, 26vw, 420px);
           border-radius: 16px;
           overflow: hidden;
-          background: var(--surface);
-          border: 1px solid var(--border);
+          background: var(--pt-surface);
+          border: 1px solid var(--pt-border-card);
           cursor: pointer;
           flex-shrink: 0;
           position: relative;
-          transition: border-color 0.3s;
+          transition: border-color 0.3s, background 0.4s ease, color 0.4s ease;
         }
-        .proj-card:hover { border-color: rgba(255,255,255,0.2); }
+        .proj-card:hover { border-color: var(--pt-muted); }
         .proj-card:nth-child(even) { margin-top: 52px; }
 
         /* Image */
@@ -391,38 +409,65 @@ export default function ProjectsSection() {
         .card-body { padding: 20px 22px 52px; }
         .card-name {
           font-size: clamp(18px, 2.2vw, 28px); font-weight: 700;
-          color: var(--text); letter-spacing: -0.02em;
+          color: var(--pt-text); letter-spacing: -0.02em;
           margin: 0 0 14px; line-height: 1.1;
         }
         .card-divider {
           width:100%; height:1px;
-          background: var(--border); margin-bottom:14px;
+          background: var(--pt-border); margin-bottom:14px;
         }
         .card-skills { display:flex; flex-wrap:wrap; gap:7px; }
         .skill-tag {
           font-family: 'DM Mono', monospace;
           font-size: 11px; letter-spacing: 0.06em;
-          color: var(--muted);
-          border: 1px solid var(--border);
+          color: var(--pt-muted);
+          border: 1px solid var(--pt-border);
           border-radius: 100px; padding: 4px 12px;
           transition: color 0.25s, border-color 0.25s;
         }
         .proj-card:hover .skill-tag {
-          color: var(--text); border-color: rgba(255,255,255,0.2);
+          color: var(--pt-text); border-color: var(--pt-muted);
         }
 
         /* Arrow */
         .card-arrow {
           position: absolute; bottom: 18px; right: 18px;
           width: 34px; height: 34px; border-radius: 50%;
-          border: 1px solid var(--border);
+          border: 1px solid var(--pt-border);
           display: flex; align-items: center; justify-content: center;
-          color: var(--muted); font-size: 14px;
+          color: var(--pt-muted); font-size: 14px;
           transition: background 0.3s, color 0.3s, transform 0.3s, border-color 0.3s;
         }
         .proj-card:hover .card-arrow {
-          background: var(--text); color: #000;
-          transform: rotate(45deg); border-color: var(--text);
+          background: var(--pt-text); color: var(--pt-bg);
+          transform: rotate(45deg); border-color: var(--pt-text);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+          .proj-header { padding: 64px 32px 36px; }
+          .scroll-progress-wrap { padding: 0 32px 28px; }
+          .proj-viewport { overflow: visible; padding: 0 32px 64px; }
+          .proj-track {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px; width: 100%;
+          }
+          .proj-card:nth-child(even) { margin-top: 0; }
+          .proj-card { width: 100%; }
+          .proj-hint { display: none; }
+        }
+
+        @media (max-width: 640px) {
+          .proj-header {
+            padding: 48px 20px 28px;
+            flex-direction: column; align-items: flex-start;
+          }
+          .proj-meta { align-items: flex-start; }
+          .scroll-progress-wrap { padding: 0 20px 24px; }
+          .proj-viewport { padding: 0 20px 48px; }
+          .proj-track { grid-template-columns: 1fr; gap: 16px; }
+          .card-body { padding: 16px 18px 48px; }
         }
       `}</style>
 

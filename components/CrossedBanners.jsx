@@ -2,51 +2,27 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function CrossedBanners() {
   const sectionRef = useRef(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Shared ScrollTrigger config — pin the section while scrolling
-      const scrollConfig = {
-        trigger: sectionRef.current,
-        start: "top top",
-        end: "+=150%",   // how long the pinned scroll lasts (tweak freely)
-        scrub: 1.2,
-        pin: true,
-        pinSpacing: true,
-        anticipatePin: 1,
-      };
+      // Black band infinite loop to LEFT
+      gsap.to(".black-track", {
+        xPercent: -50,
+        ease: "none",
+        duration: 20,
+        repeat: -1,
+      });
 
-      // Black band scrolls LEFT  (starts at 0, ends at -25%)
-      gsap.fromTo(
-        ".black-track",
-        { xPercent: 0 },
-        {
-          xPercent: -25,
-          ease: "none",
-          scrollTrigger: { ...scrollConfig },
-        }
-      );
-
-      // White band scrolls RIGHT (starts at -25%, ends at 0)
-      gsap.fromTo(
-        ".white-track",
-        { xPercent: -25 },
-        {
-          xPercent: 0,
-          ease: "none",
-          scrollTrigger: {
-            ...scrollConfig,
-            pin: false,       // piggybacks on the black band's pin
-            pinSpacing: false,
-          },
-        }
-      );
+      // White band infinite loop to RIGHT
+      gsap.to(".white-track", {
+        xPercent: 50,
+        ease: "none",
+        duration: 25,
+        repeat: -1,
+      });
     }, sectionRef);
 
     return () => ctx.revert();
@@ -67,7 +43,9 @@ export default function CrossedBanners() {
         .crossed-section {
           position: relative;
           width: 100%;
-          min-height: 100vh;
+          margin: 100px 0;
+          padding: 50px 0;
+          height: 40vh;
           overflow: hidden;
           display: flex;
           align-items: center;
@@ -92,20 +70,18 @@ export default function CrossedBanners() {
         }
 
         .band-wrapper.black {
-          transform: rotate(-19deg);
-          top: calc(70% - 190px);
-          height: 120px;
-          background: linear-gradient(90deg, #020617 0%, #0f172a 50%, #020617 100%);
-          box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+          transform: rotate(-2deg);
+          bottom: 10px;
+          height: 130px;
+          background: #0c0c0c;
           z-index: 2;
         }
 
         .band-wrapper.white {
-          transform: rotate(19deg);
-          top: calc(70% - 190px);
-          height: 120px;
-          background: linear-gradient(90deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%);
-          box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+          transform: rotate(-2deg);
+          top: 10px ;
+          height: 130px;
+          background: #ffffff;
           z-index: 3;
         }
 
@@ -146,7 +122,7 @@ export default function CrossedBanners() {
         </div>
 
         {/* White band */}
-        <div className="band-wrapper white">
+        <div className="band-wrapper white" dir="rtl">
           <div className="band-track white-track">
             {repeat("REACT NEXT.js EXPERT")}
           </div>

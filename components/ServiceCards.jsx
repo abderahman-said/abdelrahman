@@ -27,7 +27,6 @@ export default function ServiceCards() {
 
     return (
         <>
-            {/* ─── "Hire me for:" Heading ─── */}
             <div className="title-container">
                 <h2 className="main-title">hire me for <span className="italic-text">these:</span></h2>
                 <svg xmlns="http://www.w3.org/2000/svg" width="160" viewBox="0 0 159 17" fill="none" className="title-underline-svg">
