@@ -95,7 +95,7 @@ export default function CrossedBanners() {
           transform: rotate(-19deg);
           top: calc(70% - 190px);
           height: 120px;
-          background: #111;
+          background: linear-gradient(90deg, #020617 0%, #0f172a 50%, #020617 100%);
           box-shadow: 0 8px 40px rgba(0,0,0,0.25);
           z-index: 2;
         }
@@ -104,7 +104,7 @@ export default function CrossedBanners() {
           transform: rotate(19deg);
           top: calc(70% - 190px);
           height: 120px;
-          background: #fff;
+          background: linear-gradient(90deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%);
           box-shadow: 0 8px 40px rgba(0,0,0,0.18);
           z-index: 3;
         }

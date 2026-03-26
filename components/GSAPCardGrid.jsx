@@ -305,8 +305,8 @@ export default function GSAPCardGrid() {
         /* section wrapper */
         .skills-section {
           padding: 10px 10px;
-          // max-width:1400px ;
-          // margin:auto;
+          max-width:1400px ;
+          margin:auto;
         }
 
         .skills-header {

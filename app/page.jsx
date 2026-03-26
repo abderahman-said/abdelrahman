@@ -33,11 +33,11 @@ export default function Home() {
                     <MotionCards />
                 </div>
                 <CrossedBanners />
+                <GSAPCardGrid />
                 <div className="content-section service-cards-wrapper">
                     <ServiceCards />
                 </div>
             </main>
-                <GSAPCardGrid />
             {/* <section className="Double-marquee">
                 <DoubleMarquee />
             </section> */}
