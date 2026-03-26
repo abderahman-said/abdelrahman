@@ -1,5 +1,36 @@
 /* ─── Vimeo Hero ────────────────────────────────────────────────────────────── */
 
+/* ── Keyframes ── */
+@keyframes orb-drift-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(60px, -80px) scale(1.15); }
+    66%       { transform: translate(-40px, 50px) scale(0.9); }
+}
+@keyframes orb-drift-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40%       { transform: translate(-70px, 60px) scale(1.1); }
+    75%       { transform: translate(50px, -40px) scale(0.85); }
+}
+@keyframes orb-drift-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(80px, 30px) scale(1.2); }
+}
+@keyframes grain-shift {
+    0%, 100% { background-position: 0 0; }
+    20%       { background-position: -8% -12%; }
+    40%       { background-position: 6% 5%; }
+    60%       { background-position: -4% 10%; }
+    80%       { background-position: 10% -6%; }
+}
+@keyframes float-y {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-18px); }
+}
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* The outer wrapper */
 .vimeo-hero {
     position: relative;
@@ -7,9 +38,124 @@
     height: calc(100vh - 24px);
     margin: 12px auto;
     overflow: hidden;
-    background-color: var(--color-black-soft);
+    /* Rich dark background instead of solid black */
+    background: radial-gradient(ellipse at 30% 20%, #1a1230 0%, #0a0a0f 55%), #0a0a0f;
     border-radius: 24px;
     cursor: url("/assets/Cursor SVG/cursor-pointer.svg") 2 0, pointer;
+}
+
+/* ── Animated gradient orbs ── */
+.vimeo-hero__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 1;
+}
+.vimeo-hero__orb--1 {
+    width: 55vw; height: 55vw;
+    top: -20%; left: -15%;
+    background: radial-gradient(circle, rgba(120, 60, 220, 0.35) 0%, transparent 70%);
+    animation: orb-drift-1 18s ease-in-out infinite;
+}
+.vimeo-hero__orb--2 {
+    width: 45vw; height: 45vw;
+    bottom: -10%; right: -10%;
+    background: radial-gradient(circle, rgba(255, 100, 60, 0.22) 0%, transparent 70%);
+    animation: orb-drift-2 22s ease-in-out infinite;
+}
+.vimeo-hero__orb--3 {
+    width: 35vw; height: 35vw;
+    top: 20%; right: 15%;
+    background: radial-gradient(circle, rgba(40, 160, 230, 0.18) 0%, transparent 70%);
+    animation: orb-drift-3 16s ease-in-out infinite;
+}
+
+/* ── Film-grain overlay ── */
+.vimeo-hero__grain {
+    position: absolute;
+    inset: -50%;
+    width: 200%; height: 200%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    animation: grain-shift 0.12s steps(1) infinite;
+}
+
+/* ── Subtle grid lines ── */
+.vimeo-hero__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+}
+
+/* ── Floating badge chips ── */
+.vimeo-hero__badge {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255,255,255,0.7);
+    font-family: 'DM Mono', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    animation: fade-in-up 0.8s ease forwards;
+}
+.vimeo-hero__badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+/* Badge positions & stagger */
+.vimeo-hero__badge--tl {
+    top: 18%; left: 5%;
+    animation-delay: 0.4s;
+    animation-name: fade-in-up, float-y;
+    animation-duration: 0.8s, 6s;
+    animation-timing-function: ease, ease-in-out;
+    animation-fill-mode: forwards, none;
+    animation-iteration-count: 1, infinite;
+    animation-delay: 0.4s, 1.2s;
+}
+.vimeo-hero__badge--tr {
+    top: 25%; right: 6%;
+    animation-delay: 0.7s;
+    animation-name: fade-in-up, float-y;
+    animation-duration: 0.8s, 7s;
+    animation-timing-function: ease, ease-in-out;
+    animation-fill-mode: forwards, none;
+    animation-iteration-count: 1, infinite;
+    animation-delay: 0.7s, 1.5s;
+}
+.vimeo-hero__badge--ml {
+    top: 50%; left: 4%;
+    transform: translateY(-50%);
+    animation-delay: 1s;
+    animation-name: fade-in-up, float-y;
+    animation-duration: 0.8s, 8s;
+    animation-timing-function: ease, ease-in-out;
+    animation-fill-mode: forwards, none;
+    animation-iteration-count: 1, infinite;
+    animation-delay: 1s, 1.8s;
 }
 
 /* ── Iframe fills the container in "cover" mode ── */
@@ -50,9 +196,11 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(to bottom,
-            transparent 30%,
-            rgba(0, 0, 0, 0.2) 60%,
-            rgba(0, 0, 0, 0.7) 100%);
+            rgba(0,0,0,0.05) 0%,
+            transparent 25%,
+            transparent 45%,
+            rgba(0, 0, 0, 0.5) 75%,
+            rgba(0, 0, 0, 0.85) 100%);
     z-index: 2;
     pointer-events: none;
 }

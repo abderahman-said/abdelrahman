@@ -182,9 +182,9 @@ const HorizontalWords = () => {
 
             <div className="horizontal-words__bottom-text">
                 <div className="horizontal-words__bottom-text-l">
-                    Modern web development is more complex <em>and</em> more powerful<br />
-                    than ever. I help businesses create amazing digital experiences with<br />
-                    the latest frontend technologies.
+                    I am a passionate frontend developer dedicated to pushing the boundaries<br />
+                    of web design. By blending creative aesthetics with clean, efficient code,<br />
+                    I build digital experiences that leave a lasting impression.
                 </div>
             </div>
         </section>

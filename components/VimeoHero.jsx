@@ -10,6 +10,14 @@ export default function VimeoHero() {
     const titleRef = useRef(null);
     const controlsRef = useRef(null);
 
+    // Interactive refs
+    const orb1Ref = useRef(null);
+    const orb2Ref = useRef(null);
+    const orb3Ref = useRef(null);
+    const badgeTLRef = useRef(null);
+    const badgeTRRef = useRef(null);
+    const badgeMLRef = useRef(null);
+
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -17,6 +25,138 @@ export default function VimeoHero() {
 
     // Native video loads immediately enough that we don't need a heavy ready listener.
     // We already handle `setIsLoaded(true)` directly on the <video onLoadedData={...}> element.
+
+    /* ────────────────────────────────────────────────────
+       ① Mouse Parallax — orbs track cursor at diff depths
+          ② Magnetic Badges — attract toward cursor
+    ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const hero = playerRef.current;
+        if (!hero) return;
+
+        // — Parallax quickTo setters for each orb (different depths) —
+        const o1x = gsap.quickTo(orb1Ref.current, 'x', { duration: 1.8, ease: 'power2' });
+        const o1y = gsap.quickTo(orb1Ref.current, 'y', { duration: 1.8, ease: 'power2' });
+        const o2x = gsap.quickTo(orb2Ref.current, 'x', { duration: 2.4, ease: 'power2' });
+        const o2y = gsap.quickTo(orb2Ref.current, 'y', { duration: 2.4, ease: 'power2' });
+        const o3x = gsap.quickTo(orb3Ref.current, 'x', { duration: 1.4, ease: 'power2' });
+        const o3y = gsap.quickTo(orb3Ref.current, 'y', { duration: 1.4, ease: 'power2' });
+
+        // — Magnetic badge quickTo setters —
+        const badges = [
+            { el: badgeTLRef.current, strength: 28 },
+            { el: badgeTRRef.current, strength: 22 },
+            { el: badgeMLRef.current, strength: 25 },
+        ].filter(b => b.el);
+
+        const magneticSetters = badges.map(b => ({
+            ...b,
+            xTo: gsap.quickTo(b.el, 'x', { duration: 0.6, ease: 'power3' }),
+            yTo: gsap.quickTo(b.el, 'y', { duration: 0.6, ease: 'power3' }),
+        }));
+
+        const MAGNETIC_RADIUS = 160;
+
+        const onMouseMove = (e) => {
+            const rect = hero.getBoundingClientRect();
+            // Normalize -1 to +1 relative to hero center
+            const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+            const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+
+            // Parallax — deeper orbs move less
+            o1x(nx * 55); o1y(ny * 35);
+            o2x(nx * -40); o2y(ny * -28);
+            o3x(nx * 25); o3y(ny * 20);
+
+            // Magnetic badges
+            magneticSetters.forEach(({ el, strength, xTo, yTo }) => {
+                const br = el.getBoundingClientRect();
+                const bx = br.left + br.width / 2;
+                const by = br.top + br.height / 2;
+                const dx = e.clientX - bx;
+                const dy = e.clientY - by;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < MAGNETIC_RADIUS) {
+                    const pull = (1 - dist / MAGNETIC_RADIUS);
+                    xTo(dx * pull * strength / 28);
+                    yTo(dy * pull * strength / 28);
+                } else {
+                    xTo(0); yTo(0);
+                }
+            });
+        };
+
+        const onMouseLeave = () => {
+            // Snap everything back on leave
+            [orb1Ref, orb2Ref, orb3Ref].forEach(r => {
+                if (r.current) gsap.to(r.current, { x: 0, y: 0, duration: 2, ease: 'elastic.out(1,0.3)' });
+            });
+            magneticSetters.forEach(({ el }) => {
+                gsap.to(el, { x: 0, y: 0, duration: 1.2, ease: 'elastic.out(1,0.4)' });
+            });
+        };
+
+        hero.addEventListener('mousemove', onMouseMove);
+        hero.addEventListener('mouseleave', onMouseLeave);
+
+        return () => {
+            hero.removeEventListener('mousemove', onMouseMove);
+            hero.removeEventListener('mouseleave', onMouseLeave);
+        };
+    }, []);
+
+    /* ────────────────────────────────────────────────────
+       ③ Title letter-split hover — each letter pops with
+          elastic bounce on mouseenter, resets on leave
+    ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const title = titleRef.current;
+        if (!title) return;
+
+        // Wrap every bare text character inside a <span>
+        const wrapLetters = (node) => {
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                const frag = document.createDocumentFragment();
+                [...node.textContent].forEach(ch => {
+                    const s = document.createElement('span');
+                    s.className = 'hero-letter';
+                    s.textContent = ch === ' ' ? '\u00A0' : ch;
+                    frag.appendChild(s);
+                });
+                node.parentNode.replaceChild(frag, node);
+            } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('img, svg')) {
+                // Clone childNodes array — live list changes as we mutate
+                [...node.childNodes].forEach(wrapLetters);
+            }
+        };
+
+        // Only wrap inside .vimeo-hero__word spans to preserve SVG elements
+        title.querySelectorAll('.vimeo-hero__word > span').forEach(wrapLetters);
+
+        const onLetterEnter = (e) => {
+            const letter = e.currentTarget;
+            gsap.killTweensOf(letter);
+            gsap.fromTo(letter,
+                { y: 0, scaleY: 1, scaleX: 1, color: 'inherit' },
+                {
+                    y: -10, scaleY: 1.15, scaleX: 0.9,
+                    duration: 0.35, ease: 'power2.out',
+                    yoyo: true, repeat: 1
+                }
+            );
+        };
+
+        const letters = title.querySelectorAll('.hero-letter');
+        letters.forEach(l => {
+            l.style.display = 'inline-block';
+            l.addEventListener('mouseenter', onLetterEnter);
+        });
+
+        return () => {
+            letters.forEach(l => l.removeEventListener('mouseenter', onLetterEnter));
+        };
+    }, []);
 
     /* ────────────────────────────────────────────────────
        ④ Hover mute bubble — same GSAP elastic spring as CursorBubble
@@ -140,21 +280,39 @@ export default function VimeoHero() {
                         alt=""
                         className="vimeo-mute-bubble__blob-svg"
                     />
-                    {/* Mute icon (shown when sound is ON → click to mute) */}
+                    {/* CV icon — sound ON, click to mute */}
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__mute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12.3818 8.50039C12.8934 7.92803 13.7447 7.84041 14.3584 8.26992C14.3696 8.28308 14.3799 8.29711 14.3916 8.30996L14.501 8.41738L52.001 41.9174L52.1201 42.0141C52.6204 42.5885 52.6243 43.4317 52.1182 43.9984C51.6007 44.5775 50.7353 44.6609 50.1201 44.2143L50.001 44.1176L44.999 39.6488C44.2681 40.687 43.4506 41.6601 42.5557 42.5551C41.9699 43.1407 41.0203 43.1408 40.4346 42.5551C39.8493 41.9693 39.8492 41.0197 40.4346 40.434C41.2902 39.5783 42.0647 38.6412 42.7451 37.6361L37.8271 33.2416C37.2776 34.1931 36.6101 35.068 35.8389 35.8393C35.2532 36.4247 34.3035 36.4246 33.7178 35.8393C33.1321 35.2534 33.132 34.3029 33.7178 33.7172C34.452 32.9828 35.0644 32.1286 35.5273 31.1879L29 25.3559V43.4994C28.9999 44.0475 28.7004 44.5517 28.2197 44.8148C27.7389 45.0778 27.1531 45.0583 26.6914 44.7631L14.6846 37.0785C14.6042 37.0272 14.5104 36.9995 14.415 36.9994H8.5C6.56706 36.9994 5.0001 35.4323 5 33.4994V20.4994C5.00017 18.5666 6.56711 16.9994 8.5 16.9994H14.415C14.5105 16.9994 14.6042 16.9718 14.6846 16.9203L17.5225 15.1029L12.501 10.6176L12.3916 10.5102C11.8788 9.94899 11.8646 9.07956 12.3818 8.50039Z" fill="currentColor" />
-                            <path d="M40.4346 11.4428C41.0203 10.8572 41.9699 10.8573 42.5557 11.4428C46.5351 15.4222 48.9998 20.924 49 26.9984C49 29.5023 48.5806 31.909 47.8096 34.1518L45.3447 31.9506C45.7703 30.3718 46 28.712 46 26.9984C45.9998 21.7516 43.8744 17.0037 40.4346 13.5639C39.8492 12.9782 39.8492 12.0285 40.4346 11.4428Z" fill="currentColor" />
-                            <path d="M33.7178 18.1615C34.3035 17.576 35.2531 17.576 35.8389 18.1615C38.0388 20.3616 39.4237 23.3831 39.4961 26.725L35.8018 23.4242C35.3201 22.2398 34.6083 21.1732 33.7178 20.2826C33.1321 19.6968 33.132 18.7472 33.7178 18.1615Z" fill="currentColor" />
-                            <path d="M26.6914 9.23574C27.153 8.94049 27.7389 8.92026 28.2197 9.18301C28.7004 9.44611 28.9999 9.95137 29 10.4994V17.348L22.7451 11.7602L26.6914 9.23574Z" fill="currentColor" />
+                            {/* Document body */}
+                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="2.5"/>
+                            {/* Photo placeholder */}
+                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.7"/>
+                            {/* Name line */}
+                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor"/>
+                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.5"/>
+                            {/* Divider */}
+                            <line x1="14" y1="28" x2="40" y2="28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4"/>
+                            {/* Text lines */}
+                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
+                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
+                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.6"/>
                         </svg>
                     </div>
-                    {/* Unmute icon (shown when muted → click to unmute) */}
+                    {/* CV icon with slash — muted, click to unmute */}
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__unmute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M29 10.5C29 9.95184 28.701 9.44732 28.2202 9.18416C27.7392 8.921 27.1532 8.9411 26.6914 9.2366L14.6843 16.9211C14.6039 16.9726 14.5103 17 14.4148 17H8.5C6.567 17 5 18.567 5 20.5V33.5C5 35.433 6.567 37 8.5 37H14.4148C14.5103 37 14.6039 37.0274 14.6843 37.0788L26.6914 44.7634C27.1532 45.0588 27.7392 45.079 28.2202 44.8158C28.701 44.5526 29 44.0482 29 43.5V10.5Z" fill="currentColor" />
-                            <path d="M40.435 11.4432C41.0208 10.8575 41.9704 10.8575 42.5562 11.4432C46.5358 15.4228 49 20.9249 49 26.9996C49 33.0744 46.5358 38.5764 42.5562 42.556C41.9704 43.1418 41.0208 43.1418 40.435 42.556C39.8492 41.9702 39.8492 41.0204 40.435 40.4346C43.875 36.9946 46 32.2468 46 26.9996C46 21.7525 43.875 17.0045 40.435 13.5646C39.8492 12.9788 39.8492 12.029 40.435 11.4432Z" fill="currentColor" />
-                            <path d="M35.8388 18.162C35.253 17.5762 34.3032 17.5762 33.7174 18.162C33.1316 18.7478 33.1316 19.6975 33.7174 20.2833C35.4382 22.0041 36.5 24.377 36.5 27.0008C36.5 29.6246 35.4382 31.9976 33.7174 33.7184C33.1316 34.3042 33.1316 35.2538 33.7174 35.8396C34.3032 36.4254 35.253 36.4254 35.8388 35.8396C38.0992 33.5792 39.5 30.4522 39.5 27.0008C39.5 23.5494 38.0992 20.4224 35.8388 18.162Z" fill="currentColor" />
+                            {/* Document body (dimmed) */}
+                            <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" fillOpacity="0.07" stroke="currentColor" strokeWidth="2.5" opacity="0.3"/>
+                            {/* Photo placeholder (dimmed) */}
+                            <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.3"/>
+                            {/* Lines (dimmed) */}
+                            <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" opacity="0.3"/>
+                            <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
+                            <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
+                            <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
+                            <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.3"/>
+                            {/* Slash */}
+                            <line x1="9" y1="45" x2="45" y2="9" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round"/>
                         </svg>
                     </div>
                 </div>
@@ -166,11 +324,19 @@ export default function VimeoHero() {
                 ref={playerRef}
                 onClick={toggleMute}
             >
-                {/* 
-                  Video Placeholder: 
-                  Currently left blank to display a solid black background while you work on text, SVGs, and the navbar.
-                  Once you have your personal video file in the `public/` folder, uncomment and update the src below!
-                */}
+                {/* ── Background layers (active while no video src) ── */}
+                {/* Animated gradient orbs — also targeted by GSAP parallax */}
+                <div className="vimeo-hero__orb vimeo-hero__orb--1" ref={orb1Ref} />
+                <div className="vimeo-hero__orb vimeo-hero__orb--2" ref={orb2Ref} />
+                <div className="vimeo-hero__orb vimeo-hero__orb--3" ref={orb3Ref} />
+
+                {/* Subtle grid pattern */}
+                <div className="vimeo-hero__grid" />
+
+                {/* Film-grain texture */}
+                <div className="vimeo-hero__grain" />
+
+                {/* Video (hidden until src is provided) */}
                 <video
                     ref={iframeRef}
                     // src="/your-personal-video.mp4"
@@ -179,22 +345,36 @@ export default function VimeoHero() {
                     muted
                     playsInline
                     className="vimeo-hero__iframe"
-                    style={{ objectFit: 'cover', backgroundColor: '#111' }}
+                    style={{ objectFit: 'cover' }}
                 />
 
                 {/* Gradient fade */}
                 <div className="vimeo-hero__fade" />
 
+                {/* ── Floating info badges — magnetic via GSAP ── */}
+                <div className="vimeo-hero__badge vimeo-hero__badge--tl" ref={badgeTLRef}>
+                    <span className="vimeo-hero__badge-dot" style={{ background: '#4ade80' }} />
+                    Available for work
+                </div>
+                <div className="vimeo-hero__badge vimeo-hero__badge--tr" ref={badgeTRRef}>
+                    <span className="vimeo-hero__badge-dot" style={{ background: '#a78bfa' }} />
+                    3+ years experience
+                </div>
+                <div className="vimeo-hero__badge vimeo-hero__badge--ml" ref={badgeMLRef}>
+                    <span className="vimeo-hero__badge-dot" style={{ background: '#38bdf8' }} />
+                    React · Next.js · TypeScript
+                </div>
+
                 {/* ① Headline — bottom left, word-by-word layout */}
                 <div className="home-header__title">
                     <h1 className="vimeo-hero__title" ref={titleRef} onClick={(e) => e.stopPropagation()}>
 
-                        {/* "I" */}
-                        <span className="vimeo-hero__word">I </span>
+                        {/* "creative" */}
+                        <span className="vimeo-hero__word">creative </span>
 
-                        {/* "build" + ⑤ smiley (no animation) */}
+                        {/* "frontend" + smiley */}
                         <span className="vimeo-hero__word is--relative">
-                            <span>build </span>
+                            <span>frontend </span>
                             <div className="home-header__smiley">
                                 <img
                                     src="/assets/VimeoHero SVG/smiley-face.svg"
@@ -204,18 +384,12 @@ export default function VimeoHero() {
                             </div>
                         </span>
 
-                        {/* "amazing" italic */}
-                        <span className="vimeo-hero__word"><em>amazing </em></span>
-
-                        {/* "web" */}
-                        <span className="vimeo-hero__word">web </span>
-
                         <div style={{ flexBasis: '100%', height: 0 }} />
 
-                        <span className="vimeo-hero__word">with </span>
-                        <span className="vimeo-hero__word">React </span>
+                        {/* "react & next.js" italicized mini label before "developer" */}
+                        <span className="vimeo-hero__word"><em>react/next.js </em></span>
 
-                        {/* "mainstream" + ⑤ pink star (no spin) + oval underline */}
+                        {/* "developer" + pink star + underline */}
                         <span className="vimeo-hero__word is--relative">
                             <div className="home-header__star">
                                 <div className="home-header__star-inner">
@@ -232,7 +406,7 @@ export default function VimeoHero() {
                                 alt=""
                                 className="home-header__title-line-svg"
                             />
-                            <span>Next.js</span>
+                            <span>developer</span>
                         </span>
 
                     </h1>
@@ -240,19 +414,7 @@ export default function VimeoHero() {
 
                 {/* ① Controls — bottom LEFT: pause/play + fullscreen */}
                 <div className="vimeo-hero__controls" ref={controlsRef} onClick={(e) => e.stopPropagation()}>
-                    {/* Play / Pause */}
-                    <button className="vimeo-hero__btn" onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'}>
-                        {isPlaying ? (
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M5.5 5.125H8.5C8.70711 5.125 8.875 5.29289 8.875 5.5V18.5C8.875 18.7071 8.70711 18.875 8.5 18.875H5.5C5.29289 18.875 5.125 18.7071 5.125 18.5V5.5C5.125 5.29289 5.29289 5.125 5.5 5.125Z" stroke="currentColor" strokeWidth="1.25" strokeMiterlimit="10" />
-                                <path d="M15.5 5.125H18.5C18.7071 5.125 18.875 5.29289 18.875 5.5V18.5C18.875 18.7071 18.7071 18.875 18.5 18.875H15.5C15.2929 18.875 15.125 18.7071 15.125 18.5V5.5C15.125 5.29289 15.2929 5.125 15.5 5.125Z" stroke="currentColor" strokeWidth="1.25" strokeMiterlimit="10" />
-                            </svg>
-                        ) : (
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M6 12V5.20128C6 4.37664 6.89256 3.86113 7.60685 4.27322L19.3914 11.072C20.1061 11.4843 20.1061 12.5158 19.3914 12.9281L7.60685 19.7269C6.89256 20.139 6 19.6234 6 18.7988V12Z" stroke="currentColor" strokeWidth="1.33929" strokeMiterlimit="10" />
-                            </svg>
-                        )}
-                    </button>
+
 
                     {/* Fullscreen */}
                     <button className="vimeo-hero__btn" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>

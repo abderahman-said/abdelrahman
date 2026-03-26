@@ -10,7 +10,7 @@
 
 /* ─── Part 1: Heading ────────────────────────────────────────────────────── */
 .motion-card__heading {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto 60px;
     position: relative;
 }

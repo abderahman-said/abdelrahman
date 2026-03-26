@@ -56,7 +56,9 @@
     font-size: 2rem;
     margin-bottom: 20px;
 }
-
+.motion-card__cards-area {
+    display: none;
+}
     .motion-card__sticker--top {
         top: -10px;
         right: -73px;
