@@ -44,21 +44,25 @@
 
 /* ─── Mobile (≤ 768px) ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-.motion-card-section {
-    padding: 80px 20px 20px;
-}
-.motion-card__title {
-    font-size: 2.5rem;
-    letter-spacing: -1px;
-    margin-bottom: 50px;
-}
-.motion-card__subtitle {
-    font-size: 2rem;
-    margin-bottom: 20px;
-}
-.motion-card__cards-area {
-    display: none;
-}
+    .motion-card-section {
+        padding: 80px 20px 20px;
+    }
+
+    .motion-card__title {
+        font-size: 2.5rem;
+        letter-spacing: -1px;
+        margin-bottom: 50px;
+    }
+
+    .motion-card__subtitle {
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+
+    .motion-card__cards-area {
+        display: none;
+    }
+
     .motion-card__sticker--top {
         top: -10px;
         right: -73px;
@@ -66,6 +70,7 @@
         height: 10px;
         rotate: calc(-10deg);
     }
+
     /* ── Navbar ─────────────────────── */
     .navbar {
         padding: 14px 16px;
