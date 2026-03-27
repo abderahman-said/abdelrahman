@@ -81,7 +81,6 @@ const projects = [
   }
 ];
 
-// ── helper: set all theme vars at once ─────────────────────────────────────
 function setTheme(el, dark) {
   if (dark) {
     el.style.setProperty("--pt-bg",          "#0c0c0c");
@@ -104,34 +103,47 @@ export default function ProjectsSection() {
   const pinContainerRef = useRef(null);
   const viewportRef     = useRef(null);
   const trackRef        = useRef(null);
-  const headingRef      = useRef(null);
   const progressRef     = useRef(null);
   const labelRef        = useRef(null);
+  const contentRef      = useRef(null);
+  const introRef        = useRef(null);
 
   useEffect(() => {
     const track     = trackRef.current;
     const viewport  = viewportRef.current;
     const container = pinContainerRef.current;
-    const isDesktop = () => window.innerWidth > 1024;
+    const content   = contentRef.current;
+    const intro     = introRef.current;
+
+    const isDesktop   = () => window.innerWidth > 1024;
     const getDistance = () => track.scrollWidth - viewport.offsetWidth;
 
-    // ── initial light theme ──────────────────────────────────────────
-    setTheme(container, false);
+    // ── Phase boundaries (0 → 1) ─────────────────────────────────────
+    // 0.00 → 0.08 : intro text visible, nothing else
+    // 0.08 → 0.20 : intro zooms out + fades, circle starts growing
+    // 0.20 → 0.32 : circle completes, theme flips to dark
+    // 0.32 → 1.00 : content fades in, horizontal scroll runs
+    const ZOOM_START  = 0.08;
+    const CIRCLE_PEAK = 0.32;
+    const REVEAL_AT   = 0.34;
 
-    // ── dark overlay (circle expand) ────────────────────────────────
+    // ── Initial states ────────────────────────────────────────────────
+    setTheme(container, false);
+    gsap.set(content, { opacity: 0, y: 24 });
+    gsap.set(intro,   { opacity: 1, scale: 1, transformOrigin: "center center" });
+
+    // ── Dark overlay ──────────────────────────────────────────────────
     const overlay = document.createElement("div");
-    overlay.id = "dark-overlay";
     overlay.style.cssText = [
-      "position:absolute",
-      "inset:0",
-      "background:#0c0c0c",
-      "pointer-events:none",
+      "position:absolute", "inset:0",
+      "background:#0c0c0c", "pointer-events:none",
       "z-index:0",
-      "clip-path:circle(0% at 50% 60%)",
+      "clip-path:circle(0% at 50% 50%)",
       "will-change:clip-path",
     ].join(";");
 
     container.style.position = "relative";
+    container.style.overflow = "hidden";
     container.insertBefore(overlay, container.firstChild);
 
     Array.from(container.children).forEach((child) => {
@@ -141,119 +153,110 @@ export default function ProjectsSection() {
       }
     });
 
-    // ── heading entrance ────────────────────────────────────────────
-    gsap.fromTo(
-      headingRef.current,
-      { y: 50, opacity: 0 },
-      {
-        y: 0, opacity: 1, duration: 1, ease: "power3.out",
-        scrollTrigger: { trigger: container, start: "top 85%" },
-      }
-    );
+    // ── Horizontal anim (paused, driven manually) ─────────────────────
+    const horizAnim = isDesktop()
+      ? gsap.to(track, { x: () => -getDistance(), ease: "none", paused: true })
+      : null;
 
-    // ── card stagger entrance ────────────────────────────────────────
-    gsap.fromTo(
-      ".proj-card",
-      { y: 60, opacity: 0, scale: 0.94 },
-      {
-        y: 0, opacity: 1, scale: 1,
-        stagger: 0.07, duration: 0.8, ease: "power3.out",
-        scrollTrigger: { trigger: container, start: "top 80%" },
-      }
-    );
+    let flippedToDark  = false;
+    let hasRevealed    = false;
+    let introHidden    = false;
 
-    // ── Circle expand + theme flip ───────────────────────────────────
-    //
-    // CHANGES vs original:
-    //  1. easing  → ease-out-quad (p*(2-p)) instead of quart
-    //              so the circle grows fast early and slows at the end
-    //  2. FLIP_AT → 0.18  (was 0.38) — theme vars swap at ~18% scroll
-    //  3. origin  → "50% 50%" (center) instead of "50% 60%"
-    //              so the reveal feels centered and more natural
-    //
-    const FLIP_AT = 0.18;
-    let flippedToDark = false;
+    // ── Master trigger ────────────────────────────────────────────────
+    const getScrollLength = () => {
+      const horizDist = isDesktop() ? getDistance() : window.innerHeight * 2;
+      return horizDist / (1 - REVEAL_AT) + window.innerHeight * 0.6;
+    };
 
-    ScrollTrigger.create({
+    const masterST = ScrollTrigger.create({
       trigger: container,
       start: "top top",
-      end: () => `+=${isDesktop() ? getDistance() : window.innerHeight * 2}`,
-      scrub: 0.6,
+      end: () => `+=${getScrollLength()}`,
+      scrub: 1,
+      pin: true,
+      pinSpacing: true,
+      anticipatePin: 1,
       invalidateOnRefresh: true,
+
       onUpdate(self) {
         const p = self.progress;
 
-        // ease-out-quad: fast start, gradual finish
-        const eased  = p * (2 - p);
-        const radius = eased * 150;
-        overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 50%)`;
+        // ── Intro: zoom-out + fade (ZOOM_START → CIRCLE_PEAK) ────────
+        if (p >= ZOOM_START) {
+          const zp      = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
+          const eased   = zp * zp;                   // ease-in-quad: slow start, fast exit
+          const scale   = 1 + eased * 3.2;           // zoom from 1× → 4.2×
+          const opacity = 1 - eased;
+          gsap.set(intro, { scale, opacity });
 
-        if (p >= FLIP_AT && !flippedToDark) {
+          if (!introHidden && zp >= 1) introHidden = true;
+          if (introHidden && zp < 1)  introHidden = false;
+        } else {
+          gsap.set(intro, { scale: 1, opacity: 1 });
+          introHidden = false;
+        }
+
+        // ── Circle expand (ZOOM_START → CIRCLE_PEAK) ─────────────────
+        if (p >= ZOOM_START) {
+          const cp     = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
+          const eased  = cp * (2 - cp);              // ease-out-quad
+          const radius = eased * 150;
+          overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 50%)`;
+        } else {
+          overlay.style.clipPath = "circle(0% at 50% 50%)";
+        }
+
+        // ── Theme flip ────────────────────────────────────────────────
+        const themeThreshold = ZOOM_START + (CIRCLE_PEAK - ZOOM_START) * 0.75;
+        if (p >= themeThreshold && !flippedToDark) {
           flippedToDark = true;
           setTheme(container, true);
-        } else if (p < FLIP_AT && flippedToDark) {
+        } else if (p < themeThreshold && flippedToDark) {
           flippedToDark = false;
           setTheme(container, false);
+        }
+
+        // ── Content reveal (REVEAL_AT →) ──────────────────────────────
+        if (p >= REVEAL_AT && !hasRevealed) {
+          hasRevealed = true;
+          gsap.to(content, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" });
+        } else if (p < REVEAL_AT * 0.95 && hasRevealed) {
+          hasRevealed = false;
+          gsap.to(content, { opacity: 0, y: 24, duration: 0.35, ease: "power2.in" });
+        }
+
+        // ── Horizontal scroll (REVEAL_AT → 1) ────────────────────────
+        if (p >= REVEAL_AT && isDesktop() && horizAnim) {
+          const hp = Math.max(0, Math.min(1, (p - REVEAL_AT) / (1 - REVEAL_AT)));
+          horizAnim.progress(hp);
+
+          if (progressRef.current) progressRef.current.style.width = `${hp * 100}%`;
+          if (labelRef.current) {
+            const idx = Math.min(projects.length - 1, Math.floor(hp * projects.length));
+            labelRef.current.textContent =
+              `${String(idx + 1).padStart(2, "0")} / ${String(projects.length).padStart(2, "0")}`;
+          }
         }
       },
     });
 
-    // ── Horizontal scroll (desktop) ──────────────────────────────────
-    let horizST = null;
-
+    // ── Image parallax ────────────────────────────────────────────────
     if (isDesktop()) {
-      const horizAnim = gsap.to(track, {
-        x: () => -getDistance(),
-        ease: "none",
-        paused: true,
-      });
-
-      horizST = ScrollTrigger.create({
-        trigger: container,
-        start: "top top",
-        end: () => `+=${getDistance()}`,
-        scrub: 1,
-        pin: true,
-        pinSpacing: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        animation: horizAnim,
-        onUpdate(self) {
-          if (progressRef.current)
-            progressRef.current.style.width = `${self.progress * 100}%`;
-
-          if (labelRef.current) {
-            const idx = Math.min(
-              projects.length - 1,
-              Math.floor(self.progress * projects.length)
-            );
-            labelRef.current.textContent = `${String(idx + 1).padStart(2, "0")} / ${String(projects.length).padStart(2, "0")}`;
-          }
-        },
-      });
-
-      // image parallax
       gsap.utils.toArray(".card-img").forEach((img) => {
-        gsap.fromTo(
-          img,
-          { xPercent: -7 },
-          {
-            xPercent: 7,
-            ease: "none",
-            scrollTrigger: {
-              trigger: container,
-              start: "top top",
-              end: () => `+=${getDistance()}`,
-              scrub: 2.5,
-              invalidateOnRefresh: true,
-            },
-          }
-        );
+        gsap.fromTo(img, { xPercent: -7 }, {
+          xPercent: 7, ease: "none",
+          scrollTrigger: {
+            trigger: container,
+            start: "top top",
+            end: () => `+=${getScrollLength()}`,
+            scrub: 2.5, invalidateOnRefresh: true,
+          },
+        });
       });
     }
 
     return () => {
-      if (horizST) horizST.kill();
+      masterST.kill();
       ScrollTrigger.getAll().forEach((st) => st.kill());
     };
   }, []);
@@ -261,8 +264,6 @@ export default function ProjectsSection() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
-
         .pin-container {
           --pt-bg:          #f0ebe6;
           --pt-surface:     #e8e2dc;
@@ -270,12 +271,56 @@ export default function ProjectsSection() {
           --pt-muted:       #9a9088;
           --pt-border:      rgba(0,0,0,0.1);
           --pt-border-card: rgba(0,0,0,0.08);
-
           background: var(--pt-bg);
           width: 100%;
-          font-family: 'Syne', sans-serif;
-          transition: background 0.05s linear;
+          min-height: 100vh;
+          transition: background 0.06s linear;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
+
+        /* ── Intro text ── */
+        .proj-intro {
+          position: absolute;
+          inset: 0;
+          top: 42%;
+           display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 16px;
+          pointer-events: none;
+          z-index: 2;
+          will-change: transform, opacity;
+          transform-origin: center center;
+          text-align: center;
+        }
+        .proj-intro-label {
+          font-family: 'DM Mono', monospace;
+          font-size: 11px;
+          letter-spacing: 0.28em;
+          text-transform: uppercase;
+          color: var(--pt-text);
+        }
+        .proj-intro-text {
+          font-size: clamp(32px, 5.5vw, 80px);
+          font-weight: 800;
+          color: var(--pt-text);
+          letter-spacing: -0.04em;
+          line-height: 1;
+          text-align: center;
+          margin: 0;
+        }
+        .proj-intro-text em {
+          font-style: italic;
+          font-weight: 400;
+          color: transparent;
+          -webkit-text-stroke: 1.5px var(--pt-text);
+        }
+
+        /* ── Main content ── */
+        .proj-content-wrapper { will-change: transform, opacity; }
 
         .proj-header {
           padding: 100px 72px 48px;
@@ -340,41 +385,28 @@ export default function ProjectsSection() {
           min-width: 48px; text-align: right;
         }
 
-        .proj-viewport {
-          overflow: hidden;
-          padding: 0 72px 80px;
-        }
-
+        .proj-viewport { overflow: hidden; padding: 0 72px 80px; }
         .proj-track {
-          display: flex;
-          gap: 24px;
-          width: max-content;
-          will-change: transform;
+          display: flex; gap: 24px;
+          width: max-content; will-change: transform;
           align-items: flex-start;
         }
 
         .proj-card {
           width: clamp(300px, 26vw, 420px);
-          border-radius: 16px;
-          overflow: hidden;
+          border-radius: 16px; overflow: hidden;
           background: var(--pt-surface);
           border: 1px solid var(--pt-border-card);
-          cursor: pointer;
-          flex-shrink: 0;
-          position: relative;
-          transition: border-color 0.3s, background 0.4s ease, color 0.4s ease;
+          cursor: pointer; flex-shrink: 0; position: relative;
+          transition: border-color 0.3s, background 0.4s ease;
         }
         .proj-card:hover { border-color: var(--pt-muted); }
         .proj-card:nth-child(even) { margin-top: 52px; }
 
-        .card-img-wrap {
-          width: 100%; aspect-ratio: 4/3;
-          overflow: hidden; position: relative;
-        }
+        .card-img-wrap { width: 100%; aspect-ratio: 4/3; overflow: hidden; position: relative; }
         .card-img {
-          width: 114%; height: 250px;
-          object-fit: cover; margin-left: -7%;
-          display: block;
+          width: 114%; height: 250px; object-fit: cover;
+          margin-left: -7%; display: block;
           transition: transform 0.6s ease;
         }
         .proj-card:hover .card-img { transform: scale(1.05); }
@@ -384,8 +416,7 @@ export default function ProjectsSection() {
           font-family: 'DM Mono', monospace;
           font-size: 11px; letter-spacing: 0.14em;
           color: rgba(255,255,255,0.9);
-          background: rgba(0,0,0,0.48);
-          backdrop-filter: blur(8px);
+          background: rgba(0,0,0,0.48); backdrop-filter: blur(8px);
           padding: 5px 10px; border-radius: 100px;
         }
         .card-category {
@@ -402,22 +433,15 @@ export default function ProjectsSection() {
           color: var(--pt-text); letter-spacing: -0.02em;
           margin: 0 0 14px; line-height: 1.1;
         }
-        .card-divider {
-          width:100%; height:1px;
-          background: var(--pt-border); margin-bottom:14px;
-        }
+        .card-divider { width:100%; height:1px; background: var(--pt-border); margin-bottom:14px; }
         .card-skills { display:flex; flex-wrap:wrap; gap:7px; }
         .skill-tag {
           font-family: 'DM Mono', monospace;
-          font-size: 11px; letter-spacing: 0.06em;
-          color: var(--pt-muted);
-          border: 1px solid var(--pt-border);
-          border-radius: 100px; padding: 4px 12px;
+          font-size: 11px; letter-spacing: 0.06em; color: var(--pt-muted);
+          border: 1px solid var(--pt-border); border-radius: 100px; padding: 4px 12px;
           transition: color 0.25s, border-color 0.25s;
         }
-        .proj-card:hover .skill-tag {
-          color: var(--pt-text); border-color: var(--pt-muted);
-        }
+        .proj-card:hover .skill-tag { color: var(--pt-text); border-color: var(--pt-muted); }
 
         .card-arrow {
           position: absolute; bottom: 18px; right: 18px;
@@ -436,21 +460,13 @@ export default function ProjectsSection() {
           .proj-header { padding: 64px 32px 36px; }
           .scroll-progress-wrap { padding: 0 32px 28px; }
           .proj-viewport { overflow: visible; padding: 0 32px 64px; }
-          .proj-track {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px; width: 100%;
-          }
+          .proj-track { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; }
           .proj-card:nth-child(even) { margin-top: 0; }
           .proj-card { width: 100%; }
           .proj-hint { display: none; }
         }
-
         @media (max-width: 640px) {
-          .proj-header {
-            padding: 48px 20px 28px;
-            flex-direction: column; align-items: flex-start;
-          }
+          .proj-header { padding: 48px 20px 28px; flex-direction: column; align-items: flex-start; }
           .proj-meta { align-items: flex-start; }
           .scroll-progress-wrap { padding: 0 20px 24px; }
           .proj-viewport { padding: 0 20px 48px; }
@@ -461,50 +477,61 @@ export default function ProjectsSection() {
 
       <div className="pin-container" ref={pinContainerRef}>
 
-        <div className="proj-header" ref={headingRef}>
-          <h2 className="proj-heading">
-            Selected<br /><em>Works</em>
+        {/* ── Intro text (zooms out as circle expands) ── */}
+        <div className="proj-intro" ref={introRef}>
+          <span className="proj-intro-label">Our Work</span>
+          <h2 className="proj-intro-text">
+            Selected <em>Works</em>
           </h2>
-          <div className="proj-meta">
-            <span className="proj-count">
-              {String(projects.length).padStart(2, "0")} Projects
+        </div>
+
+        {/* ── Main content (revealed after circle completes) ── */}
+        <div className="proj-content-wrapper" ref={contentRef}>
+          <div className="proj-header">
+            <h2 className="proj-heading">
+              Selected<br /><em>Works</em>
+            </h2>
+            <div className="proj-meta">
+              <span className="proj-count">
+                {String(projects.length).padStart(2, "0")} Projects
+              </span>
+              <span className="proj-hint">Scroll to explore</span>
+            </div>
+          </div>
+
+          <div className="scroll-progress-wrap">
+            <div className="scroll-progress-bar">
+              <div className="scroll-progress-fill" ref={progressRef} />
+            </div>
+            <span className="scroll-progress-label" ref={labelRef}>
+              01 / {String(projects.length).padStart(2, "0")}
             </span>
-            <span className="proj-hint">Scroll to explore</span>
           </div>
-        </div>
 
-        <div className="scroll-progress-wrap">
-          <div className="scroll-progress-bar">
-            <div className="scroll-progress-fill" ref={progressRef} />
-          </div>
-          <span className="scroll-progress-label" ref={labelRef}>
-            01 / {String(projects.length).padStart(2, "0")}
-          </span>
-        </div>
-
-        <div className="proj-viewport" ref={viewportRef}>
-          <div className="proj-track" ref={trackRef}>
-            {projects.map((p) => (
-              <article className="proj-card" key={p.id}>
-                <a href={p.link} target="_blank" className="card-img-wrap">
-                  <span className="card-num">{p.id}</span>
-                  <span className="card-category" style={{ background: p.accent }}>
-                    {p.category}
-                  </span>
-                  <img className="card-img" src={p.image} alt={p.name} loading="lazy" />
-                </a>
-                <div className="card-body">
-                  <h3 className="card-name">{p.name}</h3>
-                  <div className="card-divider" />
-                  <div className="card-skills">
-                    {p.skills.map((s) => (
-                      <span className="skill-tag" key={s}>{s}</span>
-                    ))}
+          <div className="proj-viewport" ref={viewportRef}>
+            <div className="proj-track" ref={trackRef}>
+              {projects.map((p) => (
+                <article className="proj-card" key={p.id}>
+                  <a href={p.link} target="_blank" rel="noreferrer" className="card-img-wrap">
+                    <span className="card-num">{p.id}</span>
+                    <span className="card-category" style={{ background: p.accent }}>
+                      {p.category}
+                    </span>
+                    <img className="card-img" src={p.image} alt={p.name} loading="lazy" />
+                  </a>
+                  <div className="card-body">
+                    <h3 className="card-name">{p.name}</h3>
+                    <div className="card-divider" />
+                    <div className="card-skills">
+                      {p.skills.map((s) => (
+                        <span className="skill-tag" key={s}>{s}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <a href={p.link} target="_blank" className="card-arrow">↗</a>
-              </article>
-            ))}
+                  <a href={p.link} target="_blank" rel="noreferrer" className="card-arrow">↗</a>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
 

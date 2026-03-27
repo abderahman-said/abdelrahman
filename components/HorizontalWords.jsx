@@ -16,24 +16,16 @@ const HorizontalWords = () => {
             const textRef = container.querySelector('.horizontal-words__relative');
             const letters = container.querySelectorAll('.letter');
 
-            // Select the individual stickers instead of just the wrapper
-            // or we select the images directly if they are the elements we want to animate.
-            // The original logic animated .horizontal-words__sticker-svg, but since you have multiple images:
+            // Select the individual stickers
             const stickers = container.querySelectorAll('.horizontal-words__sticker-watch, .horizontal-words__sticker-cursor, .horizontal-words__sticker-phone');
-
-            // Note: To animate SVG paths with strokeDashoffset, the SVG must be inlined in the HTML,
-            // not loaded via <img> tags. The current setup uses <img> tags, so direct path animation
-            // as written below will not work unless the SVGs are converted to inline <svg> elements.
-            // For the purpose of this exercise, we'll assume the intent is for inline SVGs or
-            // that the querySelectorAll will find nothing and the animation will gracefully skip.
             const arrows = container.querySelectorAll('.horizontal-words__arrow-svg path, .horizontal-words__arrow-end-svg path');
 
-            // --- ENTRANCE & PINNING LOGIC ---
-            // To make letters start animating as we scroll down from VimeoHero,
-            // we start the horizontal movement as soon as the section enters the viewport (top bottom).
-            const entranceDistance = window.innerHeight;
-            const pinnedDistance = 2500;
+            // --- RESPONSIVE SETTINGS ---
+            const isMobile = window.innerWidth <= 768;
+            const entranceDistance = isMobile ? window.innerHeight * 0.5 : window.innerHeight;
+            const pinnedDistance = isMobile ? 1500 : 2500;
 
+            // --- ENTRANCE & PINNING LOGIC ---
             const scrollTween = gsap.timeline({
                 scrollTrigger: {
                     trigger: container,
@@ -44,21 +36,27 @@ const HorizontalWords = () => {
                 }
             });
 
+            // Mobile: smaller horizontal movement, Desktop: full movement
+            const startX = isMobile ? window.innerWidth * 0.3 : window.innerWidth;
+            const midX = isMobile ? window.innerWidth * 0.2 : window.innerWidth * 0.5;
+            
             scrollTween
                 .fromTo(textRef, {
-                    x: window.innerWidth // Start words off-screen right
+                    x: startX
                 }, {
-                    x: window.innerWidth * 0.5,
+                    x: midX,
                     ease: "none",
                     duration: entranceDistance
                 })
                 .to(textRef, {
-                    x: () => -(textRef.scrollWidth - window.innerWidth * 0.5),
+                    x: () => isMobile ? 
+                        -(textRef.scrollWidth * 0.6) : // Mobile: less scroll distance
+                        -(textRef.scrollWidth - window.innerWidth * 0.5), // Desktop: full distance
                     ease: "none",
                     duration: pinnedDistance
                 });
 
-            // Separate pinning logic so it only locks when the section hits the top
+            // Pinning - shorter on mobile
             ScrollTrigger.create({
                 trigger: container,
                 start: "top top",
@@ -69,34 +67,40 @@ const HorizontalWords = () => {
             });
             // ------------------------------------
 
-            // Bounce each letter randomly
+            // Bounce each letter - reduced movement on mobile
             letters.forEach((letter) => {
+                const bounceIntensity = isMobile ? 200 : 500;
+                const rotationIntensity = isMobile ? 30 : 60;
+                
                 gsap.from(letter, {
-                    yPercent: (Math.random() - 0.5) * 500,
-                    rotation: (Math.random() - 0.5) * 60,
+                    yPercent: (Math.random() - 0.5) * bounceIntensity,
+                    rotation: (Math.random() - 0.5) * rotationIntensity,
                     ease: "elastic.out(1.2, 1)",
                     scrollTrigger: {
                         trigger: letter,
                         containerAnimation: scrollTween,
                         start: 'left 90%',
-                        end: 'left 50%', // Finish as it reaches center
+                        end: 'left 50%',
                         scrub: 0.5
                     }
                 });
             });
 
-            // Bounce stickers
+            // Bounce stickers - smaller scale on mobile
             stickers.forEach((sticker) => {
+                const bounceIntensity = isMobile ? 200 : 400;
+                const rotationIntensity = isMobile ? 30 : 60;
+                
                 gsap.from(sticker, {
                     scale: 0,
-                    yPercent: (Math.random() - 0.5) * 400,
-                    rotation: (Math.random() - 0.5) * 60,
+                    yPercent: (Math.random() - 0.5) * bounceIntensity,
+                    rotation: (Math.random() - 0.5) * rotationIntensity,
                     ease: "elastic.out(1.2, 1)",
                     scrollTrigger: {
                         trigger: sticker,
                         containerAnimation: scrollTween,
                         start: 'left 90%',
-                        end: 'left 50%', // Finish as it reaches center
+                        end: 'left 50%',
                         scrub: 0.5
                     }
                 });

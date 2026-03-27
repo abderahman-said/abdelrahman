@@ -83,7 +83,6 @@ export default function GSAPCardGrid() {
           justify-content: center;
           pointer-events: none;
           user-select: none;
-          font-family: 'Syne', sans-serif;
           font-size: clamp(32px, 8vw, 80px);
           font-weight: 800;
           color: rgba(255,255,255,0.04);

@@ -77,7 +77,7 @@
 /* Blue blob behind cards */
 .motion-card__blob {
     position: absolute;
-    top: 50%;
+    top: 36%;
     left: 50%;
     transform: translate(-131.5%, -45%);
     width: 580px;
