@@ -74,3 +74,45 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar {
     display: none;
 }
+/* 
+.gradient-title {
+ background: linear-gradient(
+    120deg,
+    #000000 0%,
+    #5c1700 40%,   
+    #ac421f 60%,
+    #5c1700 80%,
+    #000000 100%
+  );
+
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.gradient-title-static {
+   
+     background: linear-gradient(
+    120deg,
+    #000000 0%,
+    #5c1700 40%,   
+    #ac421f 60%,    
+    #5c1700 80%,
+    #000000 100%
+  );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+} */

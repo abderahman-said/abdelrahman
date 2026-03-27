@@ -127,7 +127,7 @@ export default function MotionCards() {
             className="motion-card-section" id="motion-card-section">
             {/* ─── Part 1: Bold Heading Text with SVG Sticker Placeholders ─── */}
             <div className="motion-card__heading">
-                <h2 className="motion-card__title">
+                <h2 className="motion-card__title gradient-title">
                     building digital
                     <br />
                     experiences.
