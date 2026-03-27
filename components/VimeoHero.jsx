@@ -319,17 +319,17 @@ export default function VimeoHero() {
                 onClick={toggleMute}
             >
                 <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
-                     <Particles
-    particleColors={["#ffffff"]}
-    particleCount={700}
-    particleSpread={40}
-    speed={0.9}
-    particleBaseSize={500}
-    moveParticlesOnHover
-    alphaParticles
-    disableRotation
-    pixelRatio="1"
-/>
+                    <Particles
+                        particleColors={["#ffffff"]}
+                        particleCount={700}
+                        particleSpread={40}
+                        speed={0.9}
+                        particleBaseSize={500}
+                        moveParticlesOnHover
+                        disableRotation
+                            alphaParticles={false}
+                        pixelRatio="1"
+                    />
                 </div>
 
                 {/* Floating badges */}

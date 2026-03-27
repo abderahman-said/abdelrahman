@@ -49,8 +49,12 @@
     border-radius: var(--hero-radius);
 
     overflow: hidden;
-    background: var(--color-black);
-    cursor: url("/assets/Cursor SVG/cursor-pointer.svg") 2 0, pointer;
+background: radial-gradient(
+  circle at 50% 40%,
+  rgba(30, 58, 138, 0.15),
+  transparent 60%
+),
+#020617;  cursor: url("/assets/Cursor SVG/cursor-pointer.svg") 2 0, pointer;
 
     /* GPU-composite the property so the browser doesn't repaint on every frame */
     will-change: border-radius, margin;

@@ -83,8 +83,8 @@ const projects = [
 
 function setTheme(el, dark) {
   if (dark) {
-    el.style.setProperty("--pt-bg",          "#180004");
-    el.style.setProperty("--pt-surface",     "#1f0005");
+    el.style.setProperty("--pt-bg",          "#03081f");
+    el.style.setProperty("--pt-surface",     "#01061c");
     el.style.setProperty("--pt-text",        "#f0ece4");
     el.style.setProperty("--pt-muted",       "#5a5a5a");
     el.style.setProperty("--pt-border",      "rgba(255,255,255,0.08)");
@@ -92,7 +92,7 @@ function setTheme(el, dark) {
   } else {
     el.style.setProperty("--pt-bg",          "#f0ebe6");
     el.style.setProperty("--pt-surface",     "#e8e2dc");
-    el.style.setProperty("--pt-text",        "#180004");
+    el.style.setProperty("--pt-text",        "#03081f");
     el.style.setProperty("--pt-muted",       "#9a9088");
     el.style.setProperty("--pt-border",      "rgba(26,26,46,0.1)");
     el.style.setProperty("--pt-border-card", "rgba(26,26,46,0.08)");
@@ -164,7 +164,7 @@ export default function ProjectsSection() {
     const overlay = document.createElement("div");
     overlay.style.cssText = [
       "position:absolute", "inset:0",
-      "background:#180004", "pointer-events:none",
+      "background:#03081f", "pointer-events:none",
       "z-index:0",
       "clip-path:circle(0% at 50% 50%)",
       "will-change:clip-path",
@@ -335,7 +335,7 @@ export default function ProjectsSection() {
         .pin-container {
           --pt-bg:          #f0ebe6;
           --pt-surface:     #e8e2dc;
-          --pt-text:        #180004;
+          --pt-text:        #03081f;
           --pt-muted:       #9a9088;
           --pt-border:      rgba(26,26,46,0.1);
           --pt-border-card: rgba(26,26,46,0.08);

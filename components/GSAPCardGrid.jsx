@@ -198,7 +198,7 @@ export default function GSAPCardGrid() {
           position: relative;
           width: 100%;
           height: 460px;
-          background: #180004;
+          background: #03081f;
           border-radius: 20px;
           overflow: hidden;
           cursor: default;

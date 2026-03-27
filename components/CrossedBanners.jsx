@@ -130,7 +130,7 @@ export default function CrossedBanners() {
           transform: rotate(-2deg);
           bottom: 20px;
           height: 110px;
-          background: #180004;
+          background: #03081f;
           z-index: 2;
         }
 
