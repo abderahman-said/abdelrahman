@@ -31,7 +31,7 @@
 }
 
 .highlighted {
-  color: cyan;
+  color: var(--color-black);
   font-weight: bold;
 }
 

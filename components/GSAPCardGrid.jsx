@@ -1,7 +1,11 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const FallingText = dynamic(() => import('./FallingText'), {
   ssr: false,
@@ -27,6 +31,10 @@ const CHIPS = [
 export default function GSAPCardGrid() {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const sectionRef = useRef(null);
+  const titleRef = useRef(null);
+  const sceneRef = useRef(null);
+  const bgWordRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -37,6 +45,143 @@ export default function GSAPCardGrid() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Creative GSAP animations for titles and scroll effects
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const section = sectionRef.current;
+      const title = titleRef.current;
+      const scene = sceneRef.current;
+      const bgWord = bgWordRef.current;
+
+      if (!section) return;
+
+      // Title entrance animation with creative effects
+      gsap.fromTo(title,
+        {
+          opacity: 0,
+          y: -100,
+          rotationX: 90,
+          transformOrigin: "center bottom",
+          skewY: 10
+        },
+        {
+          opacity: 1,
+          y: 0,
+          rotationX: 0,
+          skewY: 0,
+          duration: 1.5,
+          ease: "power4.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 80%",
+            end: "top 40%",
+            scrub: 1.2
+          }
+        }
+      );
+
+      // Background word animation
+      gsap.fromTo(bgWord,
+        {
+          opacity: 0,
+          scale: 0.5,
+          rotation: -15
+        },
+        {
+          opacity: 0.04,
+          scale: 1,
+          rotation: 0,
+          duration: 2,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 70%",
+            end: "top 30%",
+            scrub: 1.5
+          }
+        }
+      );
+
+      // Scene container entrance with 3D flip
+      gsap.fromTo(scene,
+        {
+          opacity: 0,
+          rotationY: -90,
+          transformPerspective: 1000,
+          z: -200
+        },
+        {
+          opacity: 1,
+          rotationY: 0,
+          z: 0,
+          duration: 1.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 60%",
+            end: "top 20%",
+            scrub: 1.5
+          }
+        }
+      );
+
+      // Add floating animation to the scene
+      gsap.to(scene, {
+        y: -10,
+        duration: 3,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
+
+      // Parallax effect on scroll for background word
+      gsap.to(bgWord, {
+        yPercent: -30,
+        ease: "none",
+        scrollTrigger: {
+          trigger: section,
+          start: "top bottom",
+          end: "bottom top",
+          scrub: 2
+        }
+      });
+
+      // Title glow effect on hover
+      const titleHover = () => {
+        gsap.to(title, {
+          textShadow: "0 0 30px rgba(255, 255, 255, 0.5)",
+          scale: 1.05,
+          duration: 0.3,
+          ease: "power2.out"
+        });
+      };
+
+      const titleLeave = () => {
+        gsap.to(title, {
+          textShadow: "0 0 0px rgba(255, 255, 255, 0)",
+          scale: 1,
+          duration: 0.4,
+          ease: "power2.out"
+        });
+      };
+
+      if (title) {
+        title.addEventListener('mouseenter', titleHover);
+        title.addEventListener('mouseleave', titleLeave);
+      }
+
+      return () => {
+        if (title) {
+          title.removeEventListener('mouseenter', titleHover);
+          title.removeEventListener('mouseleave', titleLeave);
+        }
+      };
+
+    }, sectionRef);
+
+    return () => ctx.revert();
   }, []);
 
   const chipsText = CHIPS.map(chip => chip.label).join(' ');
@@ -53,7 +198,7 @@ export default function GSAPCardGrid() {
           position: relative;
           width: 100%;
           height: 460px;
-          background: #0c0c0c;
+          background: #180004;
           border-radius: 20px;
           overflow: hidden;
           cursor: default;

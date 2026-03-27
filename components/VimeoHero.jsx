@@ -2,41 +2,79 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import RippleGrid from './RippleGrid'; // Performance-optimized alternative to Galaxy
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Particles from './Particles';
 import GlitchText from './GlitchText';
 import Magnet from './Magnet';
 
-export default function VimeoHero() {
-    const iframeRef = useRef(null);
-    const playerRef = useRef(null);
-    const bubbleRef = useRef(null);
-    const titleRef = useRef(null);
-    const controlsRef = useRef(null);
-    const cvBtnRef = useRef(null);
+gsap.registerPlugin(ScrollTrigger);
 
-    // Interactive refs
-    const orb1Ref = useRef(null);
-    const orb2Ref = useRef(null);
-    const orb3Ref = useRef(null);
+// ── Target values when fully scrolled ─────────────────────────────────────────
+const MARGIN_MAX  = 30;   // px  — same as original design
+const RADIUS_MAX  = 33;   // px  — same as original design
+// How many pixels of scroll to reach the final values (short = snappy)
+const SCROLL_DIST = 280;  // px
+
+export default function VimeoHero() {
+    const iframeRef   = useRef(null);
+    const playerRef   = useRef(null);
+    const bubbleRef   = useRef(null);
+    const titleRef    = useRef(null);
+    const controlsRef = useRef(null);
+    const cvBtnRef    = useRef(null);
+
+    const orb1Ref    = useRef(null);
+    const orb2Ref    = useRef(null);
+    const orb3Ref    = useRef(null);
     const badgeTLRef = useRef(null);
     const badgeTRRef = useRef(null);
     const badgeMLRef = useRef(null);
 
-     const [isMuted, setIsMuted] = useState(true);
+    const [isMuted,      setIsMuted]      = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // Native video loads immediately enough that we don't need a heavy ready listener.
-    // We already handle `setIsLoaded(true)` directly on the <video onLoadedData={...}> element.
-
     /* ────────────────────────────────────────────────────
-       ① Mouse Parallax — orbs track cursor at diff depths
-          ② Magnetic Badges — attract toward cursor
+       ⓪ Scroll → margin + border-radius
+          Drives CSS custom properties so the browser
+          composites width/height/radius together with
+          a single layout pass per frame.
     ──────────────────────────────────────────────────── */
     useEffect(() => {
         const hero = playerRef.current;
         if (!hero) return;
 
-        // — Parallax quickTo setters for each orb (different depths) —
+        // Proxy object GSAP can tween freely
+        const proxy = { margin: 0, radius: 0 };
+
+        const st = ScrollTrigger.create({
+            trigger: document.body,   // fires from page top
+            start: 'top top',
+            end: `+=${SCROLL_DIST}`,
+            scrub: 0.6,               // smooth lag — feel free to adjust 0.3–1.2
+            onUpdate(self) {
+                const p = self.progress;                    // 0 → 1
+                // ease-out-quad so it feels snappy at first scroll then settles
+                const eased = 1 - Math.pow(1 - p, 2);
+
+                const m = eased * MARGIN_MAX;
+                const r = eased * RADIUS_MAX;
+
+                hero.style.setProperty('--hero-margin', `${m.toFixed(2)}px`);
+                hero.style.setProperty('--hero-radius', `${r.toFixed(2)}px`);
+            },
+        });
+
+        return () => st.kill();
+    }, []);
+
+    /* ────────────────────────────────────────────────────
+       ① Mouse Parallax — orbs track cursor at diff depths
+         ② Magnetic Badges — attract toward cursor
+    ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const hero = playerRef.current;
+        if (!hero) return;
+
         const o1x = gsap.quickTo(orb1Ref.current, 'x', { duration: 1.8, ease: 'power2' });
         const o1y = gsap.quickTo(orb1Ref.current, 'y', { duration: 1.8, ease: 'power2' });
         const o2x = gsap.quickTo(orb2Ref.current, 'x', { duration: 2.4, ease: 'power2' });
@@ -44,7 +82,6 @@ export default function VimeoHero() {
         const o3x = gsap.quickTo(orb3Ref.current, 'x', { duration: 1.4, ease: 'power2' });
         const o3y = gsap.quickTo(orb3Ref.current, 'y', { duration: 1.4, ease: 'power2' });
 
-        // — Magnetic badge quickTo setters —
         const badges = [
             { el: badgeTLRef.current, strength: 28 },
             { el: badgeTRRef.current, strength: 22 },
@@ -61,26 +98,23 @@ export default function VimeoHero() {
 
         const onMouseMove = (e) => {
             const rect = hero.getBoundingClientRect();
-            // Normalize -1 to +1 relative to hero center
-            const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-            const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+            const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
+            const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
 
-            // Parallax — deeper orbs move less
             o1x(nx * 55); o1y(ny * 35);
             o2x(nx * -40); o2y(ny * -28);
             o3x(nx * 25); o3y(ny * 20);
 
-            // Magnetic badges
             magneticSetters.forEach(({ el, strength, xTo, yTo }) => {
-                const br = el.getBoundingClientRect();
-                const bx = br.left + br.width / 2;
-                const by = br.top + br.height / 2;
-                const dx = e.clientX - bx;
-                const dy = e.clientY - by;
+                const br   = el.getBoundingClientRect();
+                const bx   = br.left + br.width  / 2;
+                const by   = br.top  + br.height / 2;
+                const dx   = e.clientX - bx;
+                const dy   = e.clientY - by;
                 const dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < MAGNETIC_RADIUS) {
-                    const pull = (1 - dist / MAGNETIC_RADIUS);
+                    const pull = 1 - dist / MAGNETIC_RADIUS;
                     xTo(dx * pull * strength / 28);
                     yTo(dy * pull * strength / 28);
                 } else {
@@ -90,7 +124,6 @@ export default function VimeoHero() {
         };
 
         const onMouseLeave = () => {
-            // Snap everything back on leave
             [orb1Ref, orb2Ref, orb3Ref].forEach(r => {
                 if (r.current) gsap.to(r.current, { x: 0, y: 0, duration: 2, ease: 'elastic.out(1,0.3)' });
             });
@@ -99,53 +132,45 @@ export default function VimeoHero() {
             });
         };
 
-        hero.addEventListener('mousemove', onMouseMove);
+        hero.addEventListener('mousemove',  onMouseMove);
         hero.addEventListener('mouseleave', onMouseLeave);
 
         return () => {
-            hero.removeEventListener('mousemove', onMouseMove);
+            hero.removeEventListener('mousemove',  onMouseMove);
             hero.removeEventListener('mouseleave', onMouseLeave);
         };
     }, []);
 
     /* ────────────────────────────────────────────────────
-       ③ Title letter-split hover — each letter pops with
-          elastic bounce on mouseenter, resets on leave
+       ③ Title letter-split hover
     ──────────────────────────────────────────────────── */
     useEffect(() => {
         const title = titleRef.current;
         if (!title) return;
 
-        // Wrap every bare text character inside a <span>
         const wrapLetters = (node) => {
             if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
                 const frag = document.createDocumentFragment();
                 [...node.textContent].forEach(ch => {
                     const s = document.createElement('span');
-                    s.className = 'hero-letter';
+                    s.className   = 'hero-letter';
                     s.textContent = ch === ' ' ? '\u00A0' : ch;
                     frag.appendChild(s);
                 });
                 node.parentNode.replaceChild(frag, node);
             } else if (node.nodeType === Node.ELEMENT_NODE && !node.closest('img, svg')) {
-                // Clone childNodes array — live list changes as we mutate
                 [...node.childNodes].forEach(wrapLetters);
             }
         };
 
-        // Only wrap inside .vimeo-hero__word spans to preserve SVG elements
         title.querySelectorAll('.vimeo-hero__word > span').forEach(wrapLetters);
 
         const onLetterEnter = (e) => {
             const letter = e.currentTarget;
             gsap.killTweensOf(letter);
             gsap.fromTo(letter,
-                { y: 0, scaleY: 1, scaleX: 1, color: 'inherit' },
-                {
-                    y: -10, scaleY: 1.15, scaleX: 0.9,
-                    duration: 0.35, ease: 'power2.out',
-                    yoyo: true, repeat: 1
-                }
+                { y: 0, scaleY: 1, scaleX: 1 },
+                { y: -10, scaleY: 1.15, scaleX: 0.9, duration: 0.35, ease: 'power2.out', yoyo: true, repeat: 1 }
             );
         };
 
@@ -155,111 +180,82 @@ export default function VimeoHero() {
             l.addEventListener('mouseenter', onLetterEnter);
         });
 
-        return () => {
-            letters.forEach(l => l.removeEventListener('mouseenter', onLetterEnter));
-        };
+        return () => letters.forEach(l => l.removeEventListener('mouseenter', onLetterEnter));
     }, []);
 
     /* ────────────────────────────────────────────────────
-       ④ Hover mute bubble — same GSAP elastic spring as CursorBubble
+       ④ Hover mute bubble
     ──────────────────────────────────────────────────── */
     useEffect(() => {
-        const bubble = bubbleRef.current;
-        const hero = playerRef.current;
-        const title = titleRef.current;
+        const bubble   = bubbleRef.current;
+        const hero     = playerRef.current;
+        const title    = titleRef.current;
         const controls = controlsRef.current;
         if (!bubble || !hero) return;
 
         const xTo = gsap.quickTo(bubble, 'x', { duration: 0.5, ease: 'power3' });
         const yTo = gsap.quickTo(bubble, 'y', { duration: 0.5, ease: 'power3' });
 
-        const onMove = (e) => {
-            xTo(e.clientX + 13);
-            yTo(e.clientY - 43);
-        };
-
+        const onMove  = (e) => { xTo(e.clientX + 13); yTo(e.clientY - 43); };
         const onEnter = () => {
             gsap.killTweensOf(bubble, 'opacity,scale,rotation');
             gsap.to(bubble, { opacity: 1, scale: 1, rotation: 0, duration: 1.7, delay: 0.05, ease: 'elastic.out(1, 0.4)' });
         };
-
         const onLeave = () => {
             gsap.killTweensOf(bubble, 'opacity,scale,rotation');
             gsap.to(bubble, { opacity: 0, scale: 0, rotation: -30, duration: 0.3, ease: 'sine.inOut' });
         };
-
-        const hideBubbleForElement = () => {
+        const hideBubble = () => {
             gsap.killTweensOf(bubble, 'opacity,scale,rotation');
             gsap.to(bubble, { opacity: 0, scale: 0, rotation: -30, duration: 0.3, ease: 'sine.inOut' });
         };
-
-        const showBubbleForElement = () => {
+        const showBubble = () => {
             gsap.killTweensOf(bubble, 'opacity,scale,rotation');
             gsap.to(bubble, { opacity: 1, scale: 1, rotation: 0, duration: 0.3, ease: 'sine.inOut' });
         };
-
         const onTitleEnter = () => {
-            hideBubbleForElement();
+            hideBubble();
             if (controls) gsap.to(controls, { opacity: 0, duration: 0.3, pointerEvents: 'none' });
         };
-
         const onTitleLeave = () => {
-            showBubbleForElement();
+            showBubble();
             if (controls) gsap.to(controls, { opacity: 1, duration: 0.3, pointerEvents: 'auto' });
         };
 
         window.addEventListener('mousemove', onMove);
         hero.addEventListener('mouseenter', onEnter);
         hero.addEventListener('mouseleave', onLeave);
-
-        if (title) {
-            title.addEventListener('mouseenter', onTitleEnter);
-            title.addEventListener('mouseleave', onTitleLeave);
-        }
-        if (controls) {
-            controls.addEventListener('mouseenter', hideBubbleForElement);
-            controls.addEventListener('mouseleave', showBubbleForElement);
-        }
+        if (title)    { title.addEventListener('mouseenter',    onTitleEnter); title.addEventListener('mouseleave',    onTitleLeave); }
+        if (controls) { controls.addEventListener('mouseenter', hideBubble);   controls.addEventListener('mouseleave', showBubble);   }
 
         return () => {
             window.removeEventListener('mousemove', onMove);
             hero.removeEventListener('mouseenter', onEnter);
             hero.removeEventListener('mouseleave', onLeave);
-
-            if (title) {
-                title.removeEventListener('mouseenter', onTitleEnter);
-                title.removeEventListener('mouseleave', onTitleLeave);
-            }
-            if (controls) {
-                controls.removeEventListener('mouseenter', hideBubbleForElement);
-                controls.removeEventListener('mouseleave', showBubbleForElement);
-            }
+            if (title)    { title.removeEventListener('mouseenter',    onTitleEnter); title.removeEventListener('mouseleave',    onTitleLeave); }
+            if (controls) { controls.removeEventListener('mouseenter', hideBubble);   controls.removeEventListener('mouseleave', showBubble);   }
         };
     }, []);
 
     /* ────────────────────────────────────────────────────
-       ⑤ CV Button infinite glow pulse 
+       ⑤ CV Button infinite glow pulse
     ──────────────────────────────────────────────────── */
     useEffect(() => {
         const cvBtn = cvBtnRef.current;
         if (!cvBtn) return;
 
         gsap.to(cvBtn, {
-            boxShadow: '0px 0px 16px 2px rgba(255, 255, 255, 0.5), inset 0px 0px 4px 1px rgba(255, 255, 255, 0.2)',
-            borderColor: 'rgba(255, 255, 255, 0.9)',
-            background: 'rgba(255, 255, 255, 0.15)',
+            boxShadow:   '0px 0px 16px 2px rgba(255,255,255,0.5), inset 0px 0px 4px 1px rgba(255,255,255,0.2)',
+            borderColor: 'rgba(255,255,255,0.9)',
+            background:  'rgba(255,255,255,0.15)',
             duration: 1.2,
             repeat: -1,
             yoyo: true,
-            ease: 'sine.inOut'
+            ease: 'sine.inOut',
         });
 
-        return () => {
-            gsap.killTweensOf(cvBtn);
-        };
+        return () => gsap.killTweensOf(cvBtn);
     }, []);
-
-   
 
     const toggleMute = (e) => {
         if (e) e.stopPropagation();
@@ -281,51 +277,35 @@ export default function VimeoHero() {
 
     return (
         <>
-            {/* ④ Hover mute bubble — follows cursor over the video */}
+            {/* Hover mute bubble */}
             <div
                 ref={bubbleRef}
                 className={`vimeo-mute-bubble ${isMuted ? 'is--muted' : 'is--unmuted'}`}
                 style={{ pointerEvents: 'none' }}
             >
                 <div className="vimeo-mute-bubble__blob">
-                    {/* Blob shape */}
-                    <img
-                        src="/assets/VimeoHero SVG/mute-bubble-blob.svg"
-                        alt=""
-                        className="vimeo-mute-bubble__blob-svg"
-                    />
-                    {/* CV icon — sound ON, click to mute */}
+                    <img src="/assets/VimeoHero SVG/mute-bubble-blob.svg" alt="" className="vimeo-mute-bubble__blob-svg" />
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__mute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            {/* Document body */}
                             <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="2.5" />
-                            {/* Photo placeholder */}
                             <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.7" />
-                            {/* Name line */}
                             <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" />
                             <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.5" />
-                            {/* Divider */}
                             <line x1="14" y1="28" x2="40" y2="28" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
-                            {/* Text lines */}
                             <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
                             <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
                             <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.6" />
                         </svg>
                     </div>
-                    {/* CV icon with slash — muted, click to unmute */}
                     <div className="vimeo-mute-bubble__icon vimeo-mute-bubble__unmute">
                         <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            {/* Document body (dimmed) */}
                             <rect x="8" y="4" width="38" height="46" rx="4" fill="currentColor" fillOpacity="0.07" stroke="currentColor" strokeWidth="2.5" opacity="0.3" />
-                            {/* Photo placeholder (dimmed) */}
                             <rect x="14" y="11" width="12" height="12" rx="2" fill="currentColor" opacity="0.3" />
-                            {/* Lines (dimmed) */}
                             <rect x="28" y="13" width="13" height="3" rx="1.5" fill="currentColor" opacity="0.3" />
                             <rect x="28" y="18" width="9" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
                             <rect x="14" y="32" width="26" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
                             <rect x="14" y="37" width="20" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
                             <rect x="14" y="42" width="23" height="2.5" rx="1.25" fill="currentColor" opacity="0.3" />
-                            {/* Slash */}
                             <line x1="9" y1="45" x2="45" y2="9" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" />
                         </svg>
                     </div>
@@ -334,26 +314,25 @@ export default function VimeoHero() {
 
             {/* ── Main hero container ── */}
             <div
-                className={`vimeo-hero   ${isMuted ? 'is-muted' : 'is-unmuted'}`}
+                className={`vimeo-hero ${isMuted ? 'is-muted' : 'is-unmuted'}`}
                 ref={playerRef}
                 onClick={toggleMute}
             >
-                {/* ── Background layers (PERFORMANCE OPTIMIZED) ── */}
-                <div style={{position: 'relative', height: '100%', overflow: 'hidden'}}>
-                  <RippleGrid
-                    enableRainbow={false}
-                    gridColor="#ffffff"
-                    rippleIntensity={0.05}
-                    gridSize={10}
-                    gridThickness={15}
-                    mouseInteraction={true}
-                    mouseInteractionRadius={2.0}
-                    opacity={0.8}
-                  />
+                <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+                     <Particles
+    particleColors={["#ffffff"]}
+    particleCount={700}
+    particleSpread={40}
+    speed={0.9}
+    particleBaseSize={500}
+    moveParticlesOnHover
+    alphaParticles
+    disableRotation
+    pixelRatio="1"
+/>
                 </div>
 
-
-                {/* ── Floating info badges — magnetic via GSAP ── */}
+                {/* Floating badges */}
                 <div className="vimeo-hero__badge vimeo-hero__badge--tl" ref={badgeTLRef}>
                     <span className="vimeo-hero__badge-dot" style={{ background: '#4ade80' }} />
                     Available for work
@@ -367,90 +346,60 @@ export default function VimeoHero() {
                     React · Next.js · TypeScript
                 </div>
 
-                {/* ① Headline — bottom left, word-by-word layout */}
+                {/* Headline */}
                 <div className="home-header__title">
                     <h1 className="vimeo-hero__title" ref={titleRef} onClick={(e) => e.stopPropagation()}>
-
-                        {/* "creative" */}
                         <span className="vimeo-hero__word">creative </span>
-
-                        {/* "frontend" + smiley */}
                         <span className="vimeo-hero__word is--relative">
-                            <GlitchText
-                                speed={1}
-                                enableShadows
-                                enableOnHover={false}
-                                className='custom-class'
-                            >
+                            <GlitchText speed={1} enableShadows enableOnHover={false} className='custom-class'>
                                 frontend
                             </GlitchText>
                             <div className="home-header__smiley">
-                                <img
-                                    src="/assets/VimeoHero SVG/smiley-face.svg"
-                                    alt=""
-                                    className="home-header__smiley-svg"
-                                />
+                                <img src="/assets/VimeoHero SVG/smiley-face.svg" alt="" className="home-header__smiley-svg" />
                             </div>
                         </span>
-
                         <div style={{ flexBasis: '100%', height: 0 }} />
-
-                        {/* "react & next.js" italicized mini label before "developer" */}
                         <span className="vimeo-hero__word"><em>react/next.js </em></span>
-
-                        {/* "developer" + pink star + underline */}
                         <span className="vimeo-hero__word is--relative">
                             <div className="home-header__star">
                                 <div className="home-header__star-inner">
-                                    <img
-                                        src="/assets/VimeoHero SVG/pink-star.svg"
-                                        alt=""
-                                        className="home-header__star-svg"
-                                    />
+                                    <img src="/assets/VimeoHero SVG/pink-star.svg" alt="" className="home-header__star-svg" />
                                 </div>
                             </div>
-                            {/* Oval underline */}
-                            <img
-                                src="/assets/VimeoHero SVG/oval-underline.svg"
-                                alt=""
-                                className="home-header__title-line-svg"
-                            />
+                            <img src="/assets/VimeoHero SVG/oval-underline.svg" alt="" className="home-header__title-line-svg" />
                             <span>developer</span>
                         </span>
-
                     </h1>
                 </div>
 
-                {/* ① Controls — bottom LEFT: pause/play + fullscreen */}
+                {/* Controls */}
                 <div className="vimeo-hero__controls" ref={controlsRef} onClick={(e) => e.stopPropagation()}>
-
                     <Magnet padding={50} disabled={false} magnetStrength={50}>
-                        <a 
+                        <a
                             ref={cvBtnRef}
-                            href="/assets/Abdulrahman-Elsaeid_next.js&&react.js.pdf" 
+                            href="/assets/Abdulrahman-Elsaeid_next.js&&react.js.pdf"
                             download="Abdulrahman-Elsaeid_CV.pdf"
                             className="vimeo-hero__btn"
-                            style={{ 
-                                textDecoration: 'none', 
-                                width: 'auto', 
+                            style={{
+                                textDecoration: 'none',
+                                width: 'auto',
                                 padding: '0 16px',
                                 gap: '8px',
                                 fontSize: '13px',
                                 fontWeight: '600',
                                 letterSpacing: '0.05em',
-                                textTransform: 'uppercase'
+                                textTransform: 'uppercase',
                             }}
                         >
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
                             </svg>
                             CV
                         </a>
                     </Magnet>
 
-                    {/* Fullscreen */}
                     <button className="vimeo-hero__btn" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
                         {!isFullscreen ? (
                             <svg viewBox="0 0 20 20" fill="none">
@@ -466,8 +415,6 @@ export default function VimeoHero() {
                         )}
                     </button>
                 </div>
-
-                {/* Loading spinner removed because native HTML video loads silently in background */}
             </div>
         </>
     );

@@ -89,6 +89,7 @@
 .motion-card__blob-svg {
     width: 100%;
     height: 100%;
+    filter: invert(4%) sepia(98%) saturate(7367%) hue-rotate(33deg) brightness(49%) contrast(167%);
 }
 
 /* ─── Individual Cards ───────────────────────────────────────────────────── */

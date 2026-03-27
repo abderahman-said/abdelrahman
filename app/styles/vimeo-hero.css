@@ -31,17 +31,29 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* The outer wrapper */
+/* ─── The outer wrapper ───────────────────────────────────────────────────────
+   Starts full-width, no margin, no radius.
+   JS (GSAP ScrollTrigger) drives --hero-margin and --hero-radius as the user
+   scrolls, producing a smooth shrink-and-round effect from pixel 0.
+──────────────────────────────────────────────────────────────────────────── */
 .vimeo-hero {
     position: relative;
-    width: calc(100% - 24px);
-    height: calc(100vh - 24px);
-    margin: 12px auto;
+
+    /* CSS custom-props animated by GSAP — start at "full bleed" */
+    --hero-margin: 0px;
+    --hero-radius: 0px;
+
+    width: calc(100% - var(--hero-margin) * 2);
+    height: calc(100vh - var(--hero-margin) * 2);
+    margin: var(--hero-margin) auto;
+    border-radius: var(--hero-radius);
+
     overflow: hidden;
-    /* Rich dark background instead of solid black */
- background: #000;
-    border-radius: 24px;
+    background: var(--color-black);
     cursor: url("/assets/Cursor SVG/cursor-pointer.svg") 2 0, pointer;
+
+    /* GPU-composite the property so the browser doesn't repaint on every frame */
+    will-change: border-radius, margin;
 }
 
 /* ── Animated gradient orbs ── */
@@ -52,7 +64,6 @@
     pointer-events: none;
     z-index: 1;
 }
- 
 
 /* ── Film-grain overlay ── */
 .vimeo-hero__grain {
@@ -111,7 +122,6 @@
 /* Badge positions & stagger */
 .vimeo-hero__badge--tl {
     top: 18%; left: 5%;
-    animation-delay: 0.4s;
     animation-name: fade-in-up, float-y;
     animation-duration: 0.8s, 6s;
     animation-timing-function: ease, ease-in-out;
@@ -121,7 +131,6 @@
 }
 .vimeo-hero__badge--tr {
     top: 25%; right: 6%;
-    animation-delay: 0.7s;
     animation-name: fade-in-up, float-y;
     animation-duration: 0.8s, 7s;
     animation-timing-function: ease, ease-in-out;
@@ -132,7 +141,6 @@
 .vimeo-hero__badge--ml {
     top: 50%; left: 4%;
     transform: translateY(-50%);
-    animation-delay: 1s;
     animation-name: fade-in-up, float-y;
     animation-duration: 0.8s, 8s;
     animation-timing-function: ease, ease-in-out;
@@ -149,10 +157,8 @@
     transform: translate(-50%, -50%);
     width: 100vw;
     height: 56.25vw;
-    /* 16:9 */
     min-height: 100vh;
     min-width: 177.78vh;
-    /* 16:9 inverted */
     border: none;
     pointer-events: none;
 }
@@ -179,17 +185,17 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(to bottom,
-            rgba(0,0,0,0.05) 0%,
+            rgba(26,26,46,0.05) 0%,
             transparent 25%,
             transparent 45%,
-            rgba(0, 0, 0, 0.5) 75%,
-            rgba(0, 0, 0, 0.85) 100%);
+            rgba(26,26,46,0.5) 75%,
+            rgba(26,26,46,0.85) 100%);
     z-index: 2;
     pointer-events: none;
 }
 
 /* ─────────────────────────────────────────────────
-   ① Headline — bottom-left, matching the screenshot
+   ① Headline — bottom-left
 ───────────────────────────────────────────────── */
 .home-header__title {
     position: absolute;
@@ -207,7 +213,7 @@
     font-size: clamp(2.5rem, 6.5vw, 6.5rem);
     line-height: 1.0;
     letter-spacing: -3px;
-        text-transform: capitalize;
+    text-transform: capitalize;
     color: var(--color-white);
     display: flex;
     flex-wrap: wrap;
@@ -223,7 +229,6 @@
     cursor: url("/assets/Cursor SVG/cursor-text.svg") 2 0, text;
 }
 
-/* Each word span */
 .vimeo-hero__word {
     display: inline-block;
     position: static;
@@ -233,7 +238,6 @@
     position: relative;
 }
 
-/* Italic "advertising" */
 .vimeo-hero__title em {
     font-family: 'Times New Roman', Georgia, serif;
     font-style: italic;
@@ -241,7 +245,7 @@
     letter-spacing: -1px;
 }
 
-/* ─── ⑤ Smiley — NO animation ─────────────────── */
+/* ─── Smiley ─────────────────── */
 .home-header__smiley {
     position: absolute;
     top: -0.85em;
@@ -258,7 +262,7 @@
     height: 100%;
 }
 
-/* ─── ⑤ Pink star — NO spin animation ─────────── */
+/* ─── Pink star ─────────── */
 .home-header__star {
     position: absolute;
     top: 10%;
@@ -284,7 +288,7 @@
     height: 100%;
 }
 
-/* ─── Oval underline under "mainstream" ────────── */
+/* ─── Oval underline ────────── */
 .home-header__title-line-svg {
     position: absolute;
     top: 50%;
@@ -304,13 +308,11 @@
 }
 
 @keyframes draw-oval-underline {
-    to {
-        stroke-dashoffset: 0;
-    }
+    to { stroke-dashoffset: 0; }
 }
 
 /* ─────────────────────────────────────────────────
-   ① Controls — bottom-LEFT (pause/play + resize)
+   Controls — bottom-LEFT
 ───────────────────────────────────────────────── */
 .vimeo-hero__controls {
     position: absolute;
@@ -353,8 +355,7 @@
 }
 
 /* ─────────────────────────────────────────────────
-   ④ Hover mute cursor bubble — appears on video hover
-   (same elastic spring as .cursor-bubble)
+   Hover mute cursor bubble
 ───────────────────────────────────────────────── */
 .vimeo-mute-bubble {
     position: fixed;
@@ -367,7 +368,6 @@
     transform-origin: left center;
 }
 
-/* The blob shape behind the mute icons */
 .vimeo-mute-bubble__blob {
     position: relative;
     width: 150px;
@@ -400,14 +400,8 @@
     height: 100%;
 }
 
-/* show/hide based on mute state */
-.vimeo-mute-bubble.is--muted .vimeo-mute-bubble__unmute {
-    display: none;
-}
-
-.vimeo-mute-bubble.is--unmuted .vimeo-mute-bubble__mute {
-    display: none;
-}
+.vimeo-mute-bubble.is--muted .vimeo-mute-bubble__unmute { display: none; }
+.vimeo-mute-bubble.is--unmuted .vimeo-mute-bubble__mute { display: none; }
 
 /* ── Loading spinner ── */
 .vimeo-hero__loading {
@@ -425,7 +419,7 @@
     opacity: 0.7;
 }
 
-/* ─── Remove old blob inside headline (no longer needed) ─── */
+/* ─── Remove old blob inside headline ─── */
 .home-header__touch-play,
 .home-header__blob-svg,
 .home-header__mute-icons {

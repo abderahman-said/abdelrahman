@@ -34,7 +34,7 @@ export default function TransitionScribble() {
             transitionScribbleSvg.style.color = randomColor;
 
             const lightColors = ['var(--color-lightblue)', 'var(--color-lightgreen)', 'var(--color-pink)'];
-            const logoColor = lightColors.includes(randomColor) ? '#000' : '#fff';
+            const logoColor = lightColors.includes(randomColor) ? 'var(--color-dark)' : '#fff';
 
             let transitionLogo = document.querySelector('.transition-logo');
             if (!transitionLogo) {

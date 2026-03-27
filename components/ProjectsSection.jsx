@@ -83,8 +83,8 @@ const projects = [
 
 function setTheme(el, dark) {
   if (dark) {
-    el.style.setProperty("--pt-bg",          "#0c0c0c");
-    el.style.setProperty("--pt-surface",     "#141414");
+    el.style.setProperty("--pt-bg",          "#180004");
+    el.style.setProperty("--pt-surface",     "#1f0005");
     el.style.setProperty("--pt-text",        "#f0ece4");
     el.style.setProperty("--pt-muted",       "#5a5a5a");
     el.style.setProperty("--pt-border",      "rgba(255,255,255,0.08)");
@@ -92,10 +92,10 @@ function setTheme(el, dark) {
   } else {
     el.style.setProperty("--pt-bg",          "#f0ebe6");
     el.style.setProperty("--pt-surface",     "#e8e2dc");
-    el.style.setProperty("--pt-text",        "#1a1714");
+    el.style.setProperty("--pt-text",        "#180004");
     el.style.setProperty("--pt-muted",       "#9a9088");
-    el.style.setProperty("--pt-border",      "rgba(0,0,0,0.1)");
-    el.style.setProperty("--pt-border-card", "rgba(0,0,0,0.08)");
+    el.style.setProperty("--pt-border",      "rgba(26,26,46,0.1)");
+    el.style.setProperty("--pt-border-card", "rgba(26,26,46,0.08)");
   }
 }
 
@@ -107,6 +107,8 @@ export default function ProjectsSection() {
   const labelRef        = useRef(null);
   const contentRef      = useRef(null);
   const introRef        = useRef(null);
+  const introLabelRef   = useRef(null);
+  const introTextRef    = useRef(null);
 
   useEffect(() => {
     const track     = trackRef.current;
@@ -114,29 +116,55 @@ export default function ProjectsSection() {
     const container = pinContainerRef.current;
     const content   = contentRef.current;
     const intro     = introRef.current;
+    const introLabel = introLabelRef.current;
+    const introText  = introTextRef.current;
 
     const isDesktop   = () => window.innerWidth > 1024;
     const getDistance = () => track.scrollWidth - viewport.offsetWidth;
 
     // ── Phase boundaries (0 → 1) ─────────────────────────────────────
-    // 0.00 → 0.08 : intro text visible, nothing else
-    // 0.08 → 0.20 : intro zooms out + fades, circle starts growing
-    // 0.20 → 0.32 : circle completes, theme flips to dark
-    // 0.32 → 1.00 : content fades in, horizontal scroll runs
-    const ZOOM_START  = 0.08;
-    const CIRCLE_PEAK = 0.32;
-    const REVEAL_AT   = 0.34;
+    // 0.00 → 0.10 : intro elements stagger in (entrance)
+    // 0.10 → 0.22 : hold / breathing room
+    // 0.22 → 0.36 : intro zooms out + fades, circle starts growing
+    // 0.36 → 0.50 : circle completes, theme flips to dark
+    // 0.50 → 1.00 : content stagger-reveals, horizontal scroll runs
+    const ENTRANCE_END  = 0.10;   // intro fully visible
+    const ZOOM_START    = 0.18;   // intro starts zooming out
+    const CIRCLE_PEAK   = 0.46;   // circle fully covers screen
+    const REVEAL_AT     = 0.50;   // content starts revealing
 
     // ── Initial states ────────────────────────────────────────────────
     setTheme(container, false);
-    gsap.set(content, { opacity: 0, y: 24 });
-    gsap.set(intro,   { opacity: 1, scale: 1, transformOrigin: "center center" });
+    gsap.set(content,    { opacity: 0, y: 0 });
+
+    // Intro children start hidden — animate in on mount
+    gsap.set(introLabel, { opacity: 0, y: 18, letterSpacing: "0.48em" });
+    gsap.set(introText,  { opacity: 0, y: 32, skewX: 4 });
+
+    // ── Entrance animation on mount ───────────────────────────────────
+    // Small delay so the page has rendered before animating
+    const entranceTl = gsap.timeline({ delay: 0.25 });
+    entranceTl
+      .to(introLabel, {
+        opacity: 1,
+        y: 0,
+        letterSpacing: "0.28em",
+        duration: 0.9,
+        ease: "power3.out",
+      })
+      .to(introText, {
+        opacity: 1,
+        y: 0,
+        skewX: 0,
+        duration: 1.05,
+        ease: "power4.out",
+      }, "-=0.55");
 
     // ── Dark overlay ──────────────────────────────────────────────────
     const overlay = document.createElement("div");
     overlay.style.cssText = [
       "position:absolute", "inset:0",
-      "background:#0c0c0c", "pointer-events:none",
+      "background:#180004", "pointer-events:none",
       "z-index:0",
       "clip-path:circle(0% at 50% 50%)",
       "will-change:clip-path",
@@ -151,6 +179,19 @@ export default function ProjectsSection() {
         child.style.position = "relative";
         child.style.zIndex   = "1";
       }
+    });
+
+    // ── Content stagger elements ──────────────────────────────────────
+    const headingEl    = content.querySelector(".proj-heading");
+    const metaEl       = content.querySelector(".proj-meta");
+    const progressEl   = content.querySelector(".scroll-progress-wrap");
+    const viewportEl   = content.querySelector(".proj-viewport");
+
+    // Set initial hidden states for stagger
+    gsap.set([headingEl, metaEl, progressEl, viewportEl], {
+      opacity: 0,
+      y: 28,
+      willChange: "transform, opacity",
     });
 
     // ── Horizontal anim (paused, driven manually) ─────────────────────
@@ -183,11 +224,14 @@ export default function ProjectsSection() {
 
         // ── Intro: zoom-out + fade (ZOOM_START → CIRCLE_PEAK) ────────
         if (p >= ZOOM_START) {
-          const zp      = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
-          const eased   = zp * zp;                   // ease-in-quad: slow start, fast exit
-          const scale   = 1 + eased * 3.2;           // zoom from 1× → 4.2×
-          const opacity = 1 - eased;
-          gsap.set(intro, { scale, opacity });
+          const zp = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
+
+          // Cubic ease-in: slow start, fast dramatic exit
+          const eased   = zp * zp * zp;
+          const scale   = 1 + eased * 2.8;      // 1× → 3.8×
+          const opacity = Math.max(0, 1 - zp * 1.6); // fades out at 62% of zoom phase
+
+          gsap.set(intro, { scale, opacity, transformOrigin: "center center" });
 
           if (!introHidden && zp >= 1) introHidden = true;
           if (introHidden && zp < 1)  introHidden = false;
@@ -198,16 +242,21 @@ export default function ProjectsSection() {
 
         // ── Circle expand (ZOOM_START → CIRCLE_PEAK) ─────────────────
         if (p >= ZOOM_START) {
-          const cp     = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
-          const eased  = cp * (2 - cp);              // ease-out-quad
-          const radius = eased * 150;
-          overlay.style.clipPath = `circle(${radius.toFixed(2)}% at 50% 50%)`;
+          const cp = Math.min((p - ZOOM_START) / (CIRCLE_PEAK - ZOOM_START), 1);
+
+          // Custom ease: slow build, explosive finish
+          const eased  = cp < 0.5
+            ? 2 * cp * cp                         // ease-in first half
+            : 1 - Math.pow(-2 * cp + 2, 2) / 2;  // ease-out second half (back-in-out feel)
+
+          const radius = eased * 152;
+          overlay.style.clipPath = `circle(${radius.toFixed(3)}% at 50% 50%)`;
         } else {
           overlay.style.clipPath = "circle(0% at 50% 50%)";
         }
 
-        // ── Theme flip ────────────────────────────────────────────────
-        const themeThreshold = ZOOM_START + (CIRCLE_PEAK - ZOOM_START) * 0.75;
+        // ── Theme flip — slightly before circle fills screen ─────────
+        const themeThreshold = ZOOM_START + (CIRCLE_PEAK - ZOOM_START) * 0.68;
         if (p >= themeThreshold && !flippedToDark) {
           flippedToDark = true;
           setTheme(container, true);
@@ -216,13 +265,31 @@ export default function ProjectsSection() {
           setTheme(container, false);
         }
 
-        // ── Content reveal (REVEAL_AT →) ──────────────────────────────
+        // ── Content stagger reveal (REVEAL_AT →) ──────────────────────
         if (p >= REVEAL_AT && !hasRevealed) {
           hasRevealed = true;
-          gsap.to(content, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" });
-        } else if (p < REVEAL_AT * 0.95 && hasRevealed) {
+          // Wrapper becomes visible
+          gsap.set(content, { opacity: 1 });
+
+          // Stagger each section in with a cinematic cascade
+          const tl = gsap.timeline();
+          tl.to(headingEl, {
+            opacity: 1, y: 0, duration: 0.75, ease: "power3.out",
+          })
+          .to(metaEl, {
+            opacity: 1, y: 0, duration: 0.6, ease: "power3.out",
+          }, "-=0.5")
+          .to(progressEl, {
+            opacity: 1, y: 0, duration: 0.55, ease: "power2.out",
+          }, "-=0.4")
+          .to(viewportEl, {
+            opacity: 1, y: 0, duration: 0.65, ease: "power2.out",
+          }, "-=0.35");
+
+        } else if (p < REVEAL_AT * 0.93 && hasRevealed) {
           hasRevealed = false;
-          gsap.to(content, { opacity: 0, y: 24, duration: 0.35, ease: "power2.in" });
+          gsap.set(content, { opacity: 0 });
+          gsap.set([headingEl, metaEl, progressEl, viewportEl], { opacity: 0, y: 28 });
         }
 
         // ── Horizontal scroll (REVEAL_AT → 1) ────────────────────────
@@ -256,6 +323,7 @@ export default function ProjectsSection() {
     }
 
     return () => {
+      entranceTl.kill();
       masterST.kill();
       ScrollTrigger.getAll().forEach((st) => st.kill());
     };
@@ -267,10 +335,10 @@ export default function ProjectsSection() {
         .pin-container {
           --pt-bg:          #f0ebe6;
           --pt-surface:     #e8e2dc;
-          --pt-text:        #1a1714;
+          --pt-text:        #180004;
           --pt-muted:       #9a9088;
-          --pt-border:      rgba(0,0,0,0.1);
-          --pt-border-card: rgba(0,0,0,0.08);
+          --pt-border:      rgba(26,26,46,0.1);
+          --pt-border-card: rgba(26,26,46,0.08);
           background: var(--pt-bg);
           width: 100%;
           min-height: 100vh;
@@ -284,8 +352,8 @@ export default function ProjectsSection() {
         .proj-intro {
           position: absolute;
           inset: 0;
-          top: 42%;
-           display: flex;
+          top: 37%;
+          display: flex;
           align-items: center;
           justify-content: center;
           flex-direction: column;
@@ -296,21 +364,27 @@ export default function ProjectsSection() {
           transform-origin: center center;
           text-align: center;
         }
+
+        /* Label line — animated separately */
         .proj-intro-label {
           font-family: 'DM Mono', monospace;
           font-size: 11px;
           letter-spacing: 0.28em;
           text-transform: uppercase;
           color: var(--pt-text);
+          will-change: opacity, transform, letter-spacing;
         }
+
+        /* Headline — animated separately */
         .proj-intro-text {
-          font-size: clamp(32px, 5.5vw, 80px);
+          font-size: clamp(32px, 5.7vw, 100px);
           font-weight: 800;
           color: var(--pt-text);
           letter-spacing: -0.04em;
           line-height: 1;
           text-align: center;
           margin: 0;
+          will-change: opacity, transform;
         }
         .proj-intro-text em {
           font-style: italic;
@@ -320,7 +394,7 @@ export default function ProjectsSection() {
         }
 
         /* ── Main content ── */
-        .proj-content-wrapper { will-change: transform, opacity; }
+        .proj-content-wrapper { will-change: opacity; }
 
         .proj-header {
           padding: 100px 72px 48px;
@@ -338,6 +412,7 @@ export default function ProjectsSection() {
           letter-spacing: -0.04em;
           margin: 0;
           transition: color 0.4s ease;
+          will-change: opacity, transform;
         }
         .proj-heading em {
           font-style: italic;
@@ -349,6 +424,7 @@ export default function ProjectsSection() {
         .proj-meta {
           display: flex; flex-direction: column;
           align-items: flex-end; gap: 8px; padding-bottom: 8px;
+          will-change: opacity, transform;
         }
         .proj-count {
           font-family: 'DM Mono', monospace;
@@ -369,6 +445,7 @@ export default function ProjectsSection() {
         .scroll-progress-wrap {
           padding: 0 72px 36px;
           display: flex; align-items: center; gap: 16px;
+          will-change: opacity, transform;
         }
         .scroll-progress-bar {
           flex: 1; height: 1px;
@@ -385,7 +462,11 @@ export default function ProjectsSection() {
           min-width: 48px; text-align: right;
         }
 
-        .proj-viewport { overflow: hidden; padding: 0 72px 80px; }
+        .proj-viewport {
+          overflow: hidden;
+          padding: 0 72px 80px;
+          will-change: opacity, transform;
+        }
         .proj-track {
           display: flex; gap: 24px;
           width: max-content; will-change: transform;
@@ -416,14 +497,14 @@ export default function ProjectsSection() {
           font-family: 'DM Mono', monospace;
           font-size: 11px; letter-spacing: 0.14em;
           color: rgba(255,255,255,0.9);
-          background: rgba(0,0,0,0.48); backdrop-filter: blur(8px);
+          background: rgba(26,26,46,0.48); backdrop-filter: blur(8px);
           padding: 5px 10px; border-radius: 100px;
         }
         .card-category {
           position: absolute; top: 14px; right: 14px; z-index: 2;
           font-family: 'DM Mono', monospace;
           font-size: 10px; font-weight: 500; letter-spacing: 0.12em;
-          text-transform: uppercase; color: #000;
+          text-transform: uppercase; color: var(--color-dark);
           padding: 5px 12px; border-radius: 100px;
         }
 
@@ -477,15 +558,15 @@ export default function ProjectsSection() {
 
       <div className="pin-container" ref={pinContainerRef}>
 
-        {/* ── Intro text (zooms out as circle expands) ── */}
+        {/* ── Intro text (animates in on mount, zooms out as circle expands) ── */}
         <div className="proj-intro" ref={introRef}>
-          <span className="proj-intro-label">Our Work</span>
-          <h2 className="proj-intro-text">
+          <span className="proj-intro-label" ref={introLabelRef}>Our Work</span>
+          <h2 className="proj-intro-text" ref={introTextRef}>
             Selected <em>Works</em>
           </h2>
         </div>
 
-        {/* ── Main content (revealed after circle completes) ── */}
+        {/* ── Main content (stagger-revealed after circle completes) ── */}
         <div className="proj-content-wrapper" ref={contentRef}>
           <div className="proj-header">
             <h2 className="proj-heading">

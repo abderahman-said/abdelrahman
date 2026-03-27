@@ -5,7 +5,7 @@ const GlitchText = ({ children, speed = 1, enableShadows = true, enableOnHover =
     '--after-duration': `${speed * 3}s`,
     '--before-duration': `${speed * 2}s`,
     '--after-shadow': enableShadows ? '-5px 0 red' : 'none',
-    '--before-shadow': enableShadows ? '5px 0 cyan' : 'none'
+    '--before-shadow': enableShadows ? '5px 0 #7d7d7d' : 'none'
   };
 
   const hoverClass = enableOnHover ? 'enable-on-hover' : '';

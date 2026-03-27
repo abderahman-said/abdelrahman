@@ -49,13 +49,15 @@
 
 /* ─── Card Color Variants ────────────────────────────────────────────────── */
 .card-green {
-    background-color: #0f172a;
     left: calc(50% - 600px);
+    background-color: #000;
     top: 50px;
     transform: rotate(4deg);
     z-index: 1;
 }
-
+.card-orange .card-divider-svg {
+    color: #fffbfc !important;
+}
 .card-darkblue {
     background-color: #d2ceca;
     color: var(--color-dark);
@@ -66,7 +68,7 @@
 }
 
 .card-orange {
-    background-color: #000;
+    background-color: #180004;
     left: calc(50% - 80px);
     top: 20px;
     transform: rotate(5deg);

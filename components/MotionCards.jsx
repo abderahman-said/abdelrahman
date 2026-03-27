@@ -10,6 +10,9 @@ gsap.registerPlugin(InertiaPlugin, ScrollTrigger);
 export default function MotionCards() {
     const sectionRef = useRef(null);
     const containerRef = useRef(null);
+    const cardsRef = useRef(null);
+    const blobRef = useRef(null);
+    const labelsRef = useRef(null);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -95,7 +98,7 @@ export default function MotionCards() {
                 label.addEventListener("mouseleave", onLeave);
             });
 
-            // Entry Animations: Sticker Pop & Underline Draw
+            // Enhanced Entry Animations with creative effects
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: sectionRef.current,
@@ -116,6 +119,131 @@ export default function MotionCards() {
                 gsap.set(underlinePath, { strokeDasharray: pathLen, strokeDashoffset: pathLen });
                 tl.to(underlinePath, { strokeDashoffset: 0, duration: 1.5, ease: "power2.out" }, 0.2);
             }
+
+            // Cards staggered entrance
+            const cardsContainer = cardsRef.current;
+            if (cardsContainer) {
+                const cards = cardsContainer.querySelectorAll(".motion-card__card");
+                gsap.fromTo(cards,
+                    {
+                        opacity: 0,
+                        scale: 0.3,
+                        rotation: () => Math.random() * 30 - 15,
+                        y: 100
+                    },
+                    {
+                        opacity: 1,
+                        scale: 1,
+                        rotation: 0,
+                        y: 0,
+                        duration: 1.2,
+                        ease: "elastic.out(1, 0.8)",
+                        stagger: {
+                            amount: 0.6,
+                            from: "random"
+                        },
+                        scrollTrigger: {
+                            trigger: cardsContainer,
+                            start: "top 80%",
+                            end: "top 30%",
+                            scrub: 1.2
+                        }
+                    }
+                );
+            }
+
+            // Blob animation
+            const blob = blobRef.current;
+            if (blob) {
+                gsap.fromTo(blob,
+                    {
+                        opacity: 0,
+                        scale: 0.5,
+                        rotation: -180
+                    },
+                    {
+                        opacity: 1,
+                        scale: 1,
+                        rotation: 0,
+                        duration: 2,
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: blob,
+                            start: "top 80%",
+                            end: "top 30%",
+                            scrub: 1.5
+                        }
+                    }
+                );
+
+                // Add floating animation to blob
+                gsap.to(blob, {
+                    y: -20,
+                    rotation: 5,
+                    duration: 4,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: "sine.inOut"
+                });
+            }
+
+            // Floating labels animation
+            const labelsContainer = labelsRef.current;
+            if (labelsContainer) {
+                const floatingLabels = labelsContainer.querySelectorAll(".motion-card__floating-label");
+                gsap.fromTo(floatingLabels,
+                    {
+                        opacity: 0,
+                        x: () => Math.random() * 200 - 100,
+                        y: () => Math.random() * 100 - 50,
+                        rotation: () => Math.random() * 20 - 10
+                    },
+                    {
+                        opacity: 1,
+                        x: 0,
+                        y: 0,
+                        rotation: 0,
+                        duration: 1.5,
+                        ease: "power3.out",
+                        stagger: {
+                            amount: 0.8,
+                            from: "random"
+                        },
+                        scrollTrigger: {
+                            trigger: labelsContainer,
+                            start: "top 80%",
+                            end: "top 30%",
+                            scrub: 1.3
+                        }
+                    }
+                );
+            }
+
+            // Footer text animation
+            const footerText = sectionRef.current.querySelector(".motion-card__description");
+            if (footerText) {
+                gsap.fromTo(footerText,
+                    {
+                        opacity: 0,
+                        y: 50,
+                        skewX: 5
+                    },
+                    {
+                        opacity: 1,
+                        y: 0,
+                        skewX: 0,
+                        duration: 1.2,
+                        ease: "power3.out",
+                        scrollTrigger: {
+                            trigger: footerText,
+                            start: "top 80%",
+                            end: "top 40%",
+                            scrub: 1.1
+                        }
+                    }
+                );
+            }
+
         }, sectionRef);
 
         return () => ctx.revert();
@@ -151,7 +279,7 @@ export default function MotionCards() {
             {/* ─── Part 2: Cards with Colorful Bars & Blue Blob ─── */}
             <div className="motion-card__cards-area">
                 {/* Blue SVG blob behind everything */}
-                <div className="motion-card__blob">
+                <div ref={blobRef} className="motion-card__blob">
                     <img
                         src="/assets/MotionCard SVG/motion-card-blob.svg"
                         alt=""
@@ -161,7 +289,7 @@ export default function MotionCards() {
 
 
                 {/* 4 Photo Cards */}
-                <div ref={containerRef} className="motion-card__cards">
+                <div ref={cardsRef} className="motion-card__cards">
                     <div className="motion-card__card motion-card__card--1">
                         <div className="motion-card__card-image">
                             <img
@@ -216,7 +344,7 @@ export default function MotionCards() {
                 </div>
 
                 {/* Floating labels — positioned freely over the cards area */}
-                <div ref={containerRef} className="motion-card__floating-labels">
+                <div ref={labelsRef} className="motion-card__floating-labels">
                     <div className="motion-card__floating-label motion-card__floating-label--pink">
                         <p className="motion-card__floating-text">pixel perfect precision</p>
                     </div>
