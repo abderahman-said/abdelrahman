@@ -3,50 +3,66 @@
 import SvgSymbols from '@/components/SvgSymbols';
 import Navbar from '@/components/Navbar';
 import VimeoHero from '@/components/VimeoHero';
-import ServiceCards from '@/components/ServiceCards';
-import MotionCards from '@/components/MotionCards';
-import DoubleMarquee from '@/components/DoubleMarquee';
-import Footer from '@/components/Footer';
-import TransitionScribble from '@/components/TransitionScribble';
-import CursorBubble from '@/components/CursorBubble';
-import SmoothScroll from '@/components/SmoothScroll';
-import CrossedBanners from '@/components/CrossedBanners';
+import { lazy, Suspense } from 'react';
 
-import HorizontalWords from '@/components/HorizontalWords';
-import ProjectsSection from '@/components/ProjectsSection';
-// import ConvergenceSection from '@/components/ConvergenceSection';
-import GSAPCardGrid from '@/components/GSAPCardGrid';
+const ServiceCards = lazy(() => import('@/components/ServiceCards'));
+const MotionCards = lazy(() => import('@/components/MotionCards'));
+const DoubleMarquee = lazy(() => import('@/components/DoubleMarquee'));
+const Footer = lazy(() => import('@/components/Footer'));
+const TransitionScribble = lazy(() => import('@/components/TransitionScribble'));
+const CursorBubble = lazy(() => import('@/components/CursorBubble'));
+const SmoothScroll = lazy(() => import('@/components/SmoothScroll'));
+const CrossedBanners = lazy(() => import('@/components/CrossedBanners'));
+const HorizontalWords = lazy(() => import('@/components/HorizontalWords'));
+const ProjectsSection = lazy(() => import('@/components/ProjectsSection'));
+const GSAPCardGrid = lazy(() => import('@/components/GSAPCardGrid'));
 
 export default function Home() {
     return (
         <>
             <SvgSymbols />
-            <SmoothScroll />
-            <CursorBubble />
+            <Suspense fallback={null}>
+                <SmoothScroll />
+            </Suspense>
+            <Suspense fallback={null}>
+                <CursorBubble />
+            </Suspense>
             <header className="main-header">
                 <Navbar />
                 <VimeoHero />
             </header>
-            <HorizontalWords />
+            <Suspense fallback={null}>
+                <HorizontalWords />
+            </Suspense>
             <main>
-                <ProjectsSection />
-                {/* <ConvergenceSection /> */}
+                <Suspense fallback={null}>
+                    <ProjectsSection />
+                </Suspense>
                 <div className="content-section motion-cards-wrapper">
-                    <MotionCards />
+                    <Suspense fallback={null}>
+                        <MotionCards />
+                    </Suspense>
                 </div>
-                <CrossedBanners />
-                <GSAPCardGrid />
+                <Suspense fallback={null}>
+                    <CrossedBanners />
+                </Suspense>
+                <Suspense fallback={null}>
+                    <GSAPCardGrid />
+                </Suspense>
                 <div className="content-section service-cards-wrapper">
-                    <ServiceCards />
+                    <Suspense fallback={null}>
+                        <ServiceCards />
+                    </Suspense>
                 </div>
             </main>
-            {/* <section className="Double-marquee">
-                <DoubleMarquee />
-            </section> */}
             <footer className="main-footer">
-                <Footer />
+                <Suspense fallback={null}>
+                    <Footer />
+                </Suspense>
             </footer>
-            <TransitionScribble />
+            <Suspense fallback={null}>
+                <TransitionScribble />
+            </Suspense>
         </>
     );
 }

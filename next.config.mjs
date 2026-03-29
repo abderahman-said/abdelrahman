@@ -9,6 +9,39 @@ const nextConfig = {
         config.resolve.alias['@'] = path.resolve(__dirname);
         return config;
     },
+    compress: true,
+    poweredByHeader: false,
+    generateEtags: false,
+    httpAgentOptions: {
+        keepAlive: true,
+    },
+    experimental: {
+        optimizeCss: true,
+        optimizePackageImports: ['gsap', 'motion', 'ogl'],
+    },
+    compiler: {
+        removeConsole: process.env.NODE_ENV === 'production',
+    },
+    headers: async () => [
+        {
+            source: '/assets/:path*',
+            headers: [
+                {
+                    key: 'Cache-Control',
+                    value: 'public, max-age=31536000, immutable',
+                },
+            ],
+        },
+        {
+            source: '/fonts/:path*',
+            headers: [
+                {
+                    key: 'Cache-Control',
+                    value: 'public, max-age=31536000, immutable',
+                },
+            ],
+        },
+    ],
 };
 
 export default nextConfig;

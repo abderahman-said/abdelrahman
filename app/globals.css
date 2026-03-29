@@ -3,6 +3,9 @@
    Edit individual files in app/styles/ for section-specific changes.
 ───────────────────────────────────────────────────────────────────────────── */
 
+/* Critical above-the-fold styles - load first */
+@import './styles/critical.css';
+
 @import './styles/base.css';
 /* Fonts, CSS variables, reset, body/html  */
 @import './styles/navbar.css';

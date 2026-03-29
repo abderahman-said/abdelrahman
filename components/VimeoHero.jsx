@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Particles from './Particles';
 import GlitchText from './GlitchText';
 import Magnet from './Magnet';
+import CircularText from './CircularText';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,6 +33,73 @@ export default function VimeoHero() {
 
     const [isMuted,      setIsMuted]      = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const onMouseMove = useCallback((e) => {
+        const hero = playerRef.current;
+        if (!hero) return;
+
+        const rect = hero.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
+        const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
+
+        const o1x = gsap.quickTo(orb1Ref.current, 'x', { duration: 1.8, ease: 'power2' });
+        const o1y = gsap.quickTo(orb1Ref.current, 'y', { duration: 1.8, ease: 'power2' });
+        const o2x = gsap.quickTo(orb2Ref.current, 'x', { duration: 2.4, ease: 'power2' });
+        const o2y = gsap.quickTo(orb2Ref.current, 'y', { duration: 2.4, ease: 'power2' });
+        const o3x = gsap.quickTo(orb3Ref.current, 'x', { duration: 1.4, ease: 'power2' });
+        const o3y = gsap.quickTo(orb3Ref.current, 'y', { duration: 1.4, ease: 'power2' });
+
+        const badges = [
+            { el: badgeTLRef.current, strength: 28 },
+            { el: badgeTRRef.current, strength: 22 },
+            { el: badgeMLRef.current, strength: 25 },
+        ].filter(b => b.el);
+
+        const magneticSetters = badges.map(b => ({
+            ...b,
+            xTo: gsap.quickTo(b.el, 'x', { duration: 0.6, ease: 'power3' }),
+            yTo: gsap.quickTo(b.el, 'y', { duration: 0.6, ease: 'power3' }),
+        }));
+
+        const MAGNETIC_RADIUS = 160;
+
+        o1x(nx * 55); o1y(ny * 35);
+        o2x(nx * -40); o2y(ny * -28);
+        o3x(nx * 25); o3y(ny * 20);
+
+        magneticSetters.forEach(({ el, strength, xTo, yTo }) => {
+            const br   = el.getBoundingClientRect();
+            const bx   = br.left + br.width  / 2;
+            const by   = br.top  + br.height / 2;
+            const dx   = e.clientX - bx;
+            const dy   = e.clientY - by;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < MAGNETIC_RADIUS) {
+                const pull = 1 - dist / MAGNETIC_RADIUS;
+                xTo(dx * pull * strength / 28);
+                yTo(dy * pull * strength / 28);
+            } else {
+                xTo(0); yTo(0);
+            }
+        });
+    }, []);
+
+    const onMouseLeave = useCallback(() => {
+        [orb1Ref, orb2Ref, orb3Ref].forEach(r => {
+            if (r.current) gsap.to(r.current, { x: 0, y: 0, duration: 2, ease: 'elastic.out(1,0.3)' });
+        });
+        
+        const badges = [
+            { el: badgeTLRef.current, strength: 28 },
+            { el: badgeTRRef.current, strength: 22 },
+            { el: badgeMLRef.current, strength: 25 },
+        ].filter(b => b.el);
+
+        badges.forEach(({ el }) => {
+            gsap.to(el, { x: 0, y: 0, duration: 1.2, ease: 'elastic.out(1,0.4)' });
+        });
+    }, []);
 
     /* ────────────────────────────────────────────────────
        ⓪ Enhanced text entrance animations
@@ -118,71 +186,14 @@ export default function VimeoHero() {
         const hero = playerRef.current;
         if (!hero) return;
 
-        const o1x = gsap.quickTo(orb1Ref.current, 'x', { duration: 1.8, ease: 'power2' });
-        const o1y = gsap.quickTo(orb1Ref.current, 'y', { duration: 1.8, ease: 'power2' });
-        const o2x = gsap.quickTo(orb2Ref.current, 'x', { duration: 2.4, ease: 'power2' });
-        const o2y = gsap.quickTo(orb2Ref.current, 'y', { duration: 2.4, ease: 'power2' });
-        const o3x = gsap.quickTo(orb3Ref.current, 'x', { duration: 1.4, ease: 'power2' });
-        const o3y = gsap.quickTo(orb3Ref.current, 'y', { duration: 1.4, ease: 'power2' });
-
-        const badges = [
-            { el: badgeTLRef.current, strength: 28 },
-            { el: badgeTRRef.current, strength: 22 },
-            { el: badgeMLRef.current, strength: 25 },
-        ].filter(b => b.el);
-
-        const magneticSetters = badges.map(b => ({
-            ...b,
-            xTo: gsap.quickTo(b.el, 'x', { duration: 0.6, ease: 'power3' }),
-            yTo: gsap.quickTo(b.el, 'y', { duration: 0.6, ease: 'power3' }),
-        }));
-
-        const MAGNETIC_RADIUS = 160;
-
-        const onMouseMove = (e) => {
-            const rect = hero.getBoundingClientRect();
-            const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
-            const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
-
-            o1x(nx * 55); o1y(ny * 35);
-            o2x(nx * -40); o2y(ny * -28);
-            o3x(nx * 25); o3y(ny * 20);
-
-            magneticSetters.forEach(({ el, strength, xTo, yTo }) => {
-                const br   = el.getBoundingClientRect();
-                const bx   = br.left + br.width  / 2;
-                const by   = br.top  + br.height / 2;
-                const dx   = e.clientX - bx;
-                const dy   = e.clientY - by;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < MAGNETIC_RADIUS) {
-                    const pull = 1 - dist / MAGNETIC_RADIUS;
-                    xTo(dx * pull * strength / 28);
-                    yTo(dy * pull * strength / 28);
-                } else {
-                    xTo(0); yTo(0);
-                }
-            });
-        };
-
-        const onMouseLeave = () => {
-            [orb1Ref, orb2Ref, orb3Ref].forEach(r => {
-                if (r.current) gsap.to(r.current, { x: 0, y: 0, duration: 2, ease: 'elastic.out(1,0.3)' });
-            });
-            magneticSetters.forEach(({ el }) => {
-                gsap.to(el, { x: 0, y: 0, duration: 1.2, ease: 'elastic.out(1,0.4)' });
-            });
-        };
-
-        hero.addEventListener('mousemove',  onMouseMove);
+        hero.addEventListener('mousemove', onMouseMove);
         hero.addEventListener('mouseleave', onMouseLeave);
 
         return () => {
-            hero.removeEventListener('mousemove',  onMouseMove);
+            hero.removeEventListener('mousemove', onMouseMove);
             hero.removeEventListener('mouseleave', onMouseLeave);
         };
-    }, []);
+    }, [onMouseMove, onMouseLeave]);
 
     /* ────────────────────────────────────────────────────
        ③ Title letter-split hover
@@ -300,14 +311,14 @@ export default function VimeoHero() {
         return () => gsap.killTweensOf(cvBtn);
     }, []);
 
-    const toggleMute = (e) => {
+    const toggleMute = useCallback((e) => {
         if (e) e.stopPropagation();
         if (!iframeRef.current) return;
         iframeRef.current.muted = !isMuted;
         setIsMuted(m => !m);
-    };
+    }, [isMuted]);
 
-    const toggleFullscreen = (e) => {
+    const toggleFullscreen = useCallback((e) => {
         if (e) e.stopPropagation();
         if (!document.fullscreenElement) {
             playerRef.current?.requestFullscreen();
@@ -316,7 +327,7 @@ export default function VimeoHero() {
             document.exitFullscreen();
             setIsFullscreen(false);
         }
-    };
+    }, []);
 
     return (
         <>
@@ -387,6 +398,16 @@ export default function VimeoHero() {
                 <div className="vimeo-hero__badge vimeo-hero__badge--ml" ref={badgeMLRef}>
                     <span className="vimeo-hero__badge-dot" style={{ background: '#38bdf8' }} />
                     React · Next.js · TypeScript
+                </div>
+
+                {/* Circular Text */}
+                <div className='custom-circular-text' >
+                    <CircularText
+                        text="NEXT*REACT*ANGULAR*"
+                        onHover="speedUp"
+                        spinDuration={20}
+                        className="custom-class"
+                    />
                 </div>
 
                 {/* Headline */}
