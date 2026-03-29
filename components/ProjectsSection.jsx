@@ -487,7 +487,7 @@ export default function ProjectsSection() {
         <div className="proj-content-wrapper" ref={contentRef}>
           <div className="proj-header">
             <h2 className="proj-heading">
-              Selected<br /><em>Works</em>
+              Selected<em>Works</em>
             </h2>
             <div className="proj-meta">
               <span className="proj-count">
