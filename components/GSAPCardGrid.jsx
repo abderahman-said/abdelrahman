@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -28,7 +28,35 @@ const CHIPS = [
   { label: "Git",          bg: "#F05032", tc: "#fff" },
 ];
 
+const cardConfigs = [
+  { 
+    title: "Frontend Development", 
+    chips: ["HTML", "CSS", "JavaScript", "React", "Next.js", "TypeScript"],
+    color: "#0EA5E9",
+    delay: 0
+  },
+  { 
+    title: "Animation & Interactions", 
+    chips: ["GSAP", "Tailwind", "CSS"],
+    color: "#0AE448",
+    delay: 0.2
+  },
+  { 
+    title: "State Management & APIs", 
+    chips: ["Redux", "React Query", "Axios"],
+    color: "#FF4154",
+    delay: 0.4
+  },
+  { 
+    title: "Development Tools", 
+    chips: ["Git", "Sass", "TypeScript"],
+    color: "#764ABC",
+    delay: 0.6
+  }
+];
+
 export default function GSAPCardGrid() {
+  const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const sectionRef = useRef(null);
@@ -37,6 +65,7 @@ export default function GSAPCardGrid() {
   const bgWordRef = useRef(null);
 
   useEffect(() => {
+    setIsClient(true);
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 480);
       setIsTablet(window.innerWidth > 480 && window.innerWidth <= 768);

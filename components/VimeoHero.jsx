@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Particles from './Particles';
@@ -34,14 +34,7 @@ export default function VimeoHero() {
     const [isMuted,      setIsMuted]      = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    const onMouseMove = useCallback((e) => {
-        const hero = playerRef.current;
-        if (!hero) return;
-
-        const rect = hero.getBoundingClientRect();
-        const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
-        const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
-
+    const gsapSetters = useMemo(() => {
         const o1x = gsap.quickTo(orb1Ref.current, 'x', { duration: 1.8, ease: 'power2' });
         const o1y = gsap.quickTo(orb1Ref.current, 'y', { duration: 1.8, ease: 'power2' });
         const o2x = gsap.quickTo(orb2Ref.current, 'x', { duration: 2.4, ease: 'power2' });
@@ -61,7 +54,19 @@ export default function VimeoHero() {
             yTo: gsap.quickTo(b.el, 'y', { duration: 0.6, ease: 'power3' }),
         }));
 
+        return { o1x, o1y, o2x, o2y, o3x, o3y, magneticSetters };
+    }, []);
+
+    const onMouseMove = useCallback((e) => {
+        const hero = playerRef.current;
+        if (!hero) return;
+
+        const rect = hero.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left)  / rect.width  - 0.5) * 2;
+        const ny = ((e.clientY - rect.top)   / rect.height - 0.5) * 2;
+
         const MAGNETIC_RADIUS = 160;
+        const { o1x, o1y, o2x, o2y, o3x, o3y, magneticSetters } = gsapSetters;
 
         o1x(nx * 55); o1y(ny * 35);
         o2x(nx * -40); o2y(ny * -28);
@@ -83,7 +88,7 @@ export default function VimeoHero() {
                 xTo(0); yTo(0);
             }
         });
-    }, []);
+    }, [gsapSetters]);
 
     const onMouseLeave = useCallback(() => {
         [orb1Ref, orb2Ref, orb3Ref].forEach(r => {

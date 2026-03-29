@@ -1,7 +1,7 @@
 "use client";
 
 import gsap from "gsap";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useCallback, useMemo } from "react";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -14,44 +14,86 @@ export default function MotionCards() {
     const blobRef = useRef(null);
     const labelsRef = useRef(null);
 
+    const createCardHandlers = useCallback((card) => {
+        let lastX = 0;
+        let lastY = 0;
+        let speedX = 0;
+        let speedY = 0;
+
+        const startRotation = gsap.getProperty(card, "rotation");
+        const startX = gsap.getProperty(card, "x");
+        const startY = gsap.getProperty(card, "y");
+
+        const onMove = (e) => {
+            speedX = e.clientX - lastX;
+            speedY = e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        };
+
+        const onEnter = (e) => {
+            speedX = 0;
+            speedY = 0;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        };
+
+        const onLeave = () => {
+            gsap.to(card, {
+                inertia: {
+                    x: { velocity: speedX * 20, end: startX },
+                    y: { velocity: speedY * 20, end: startY },
+                    rotation: { velocity: speedX * 1.5, end: startRotation },
+                },
+            });
+        };
+
+        return { onMove, onEnter, onLeave };
+    }, []);
+
+    const createLabelHandlers = useCallback((label) => {
+        let lastX = 0;
+        let lastY = 0;
+        let speedX = 0;
+        let speedY = 0;
+
+        const startRotation = gsap.getProperty(label, "rotation");
+        const startX = gsap.getProperty(label, "x");
+        const startY = gsap.getProperty(label, "y");
+
+        const onMove = (e) => {
+            speedX = e.clientX - lastX;
+            speedY = e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        };
+
+        const onEnter = (e) => {
+            speedX = 0;
+            speedY = 0;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        };
+
+        const onLeave = () => {
+            gsap.to(label, {
+                inertia: {
+                    x: { velocity: speedX * 15, end: startX },
+                    y: { velocity: speedY * 15, end: startY },
+                    rotation: { velocity: speedX * 1.2, end: startRotation },
+                },
+            });
+        };
+
+        return { onMove, onEnter, onLeave };
+    }, []);
+
     useEffect(() => {
         const ctx = gsap.context(() => {
             // Inertia on cards
             const cards = document.querySelectorAll(".motion-card__card");
             cards.forEach((card) => {
-                let lastX = 0;
-                let lastY = 0;
-                let speedX = 0;
-                let speedY = 0;
-
-                const startRotation = gsap.getProperty(card, "rotation");
-                const startX = gsap.getProperty(card, "x");
-                const startY = gsap.getProperty(card, "y");
-
-                const onMove = (e) => {
-                    speedX = e.clientX - lastX;
-                    speedY = e.clientY - lastY;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                };
-
-                const onEnter = (e) => {
-                    speedX = 0;
-                    speedY = 0;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                };
-
-                const onLeave = () => {
-                    gsap.to(card, {
-                        inertia: {
-                            x: { velocity: speedX * 20, end: startX },
-                            y: { velocity: speedY * 20, end: startY },
-                            rotation: { velocity: speedX * 1.5, end: startRotation },
-                        },
-                    });
-                };
-
+                const { onMove, onEnter, onLeave } = createCardHandlers(card);
                 card.addEventListener("mousemove", onMove);
                 card.addEventListener("mouseenter", onEnter);
                 card.addEventListener("mouseleave", onLeave);
@@ -60,39 +102,7 @@ export default function MotionCards() {
             // Inertia on floating labels
             const labels = document.querySelectorAll(".motion-card__floating-label");
             labels.forEach((label) => {
-                let lastX = 0;
-                let lastY = 0;
-                let speedX = 0;
-                let speedY = 0;
-
-                const startRotation = gsap.getProperty(label, "rotation");
-                const startX = gsap.getProperty(label, "x");
-                const startY = gsap.getProperty(label, "y");
-
-                const onMove = (e) => {
-                    speedX = e.clientX - lastX;
-                    speedY = e.clientY - lastY;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                };
-
-                const onEnter = (e) => {
-                    speedX = 0;
-                    speedY = 0;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                };
-
-                const onLeave = () => {
-                    gsap.to(label, {
-                        inertia: {
-                            x: { velocity: speedX * 25, end: startX },
-                            y: { velocity: speedY * 25, end: startY },
-                            rotation: { velocity: speedX * 2, end: startRotation },
-                        },
-                    });
-                };
-
+                const { onMove, onEnter, onLeave } = createLabelHandlers(label);
                 label.addEventListener("mousemove", onMove);
                 label.addEventListener("mouseenter", onEnter);
                 label.addEventListener("mouseleave", onLeave);
@@ -298,7 +308,7 @@ export default function MotionCards() {
                 );
             }
 
-        }, sectionRef);
+        }, sectionRef, createCardHandlers, createLabelHandlers);
 
         return () => ctx.revert();
     }, []);

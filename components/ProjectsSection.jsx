@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
+import OptimizedImage from './OptimizedImage';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -17,7 +18,7 @@ const projects = [
   { id: "08", name: "Aqar Corp", category: "Real Estate",         skills: ["Next.js"],  accent: "#f59e0b", image: "/assets/projects/aqar.png",     link: "https://aqarcorp.com" },
 ];
 
-function setTheme(el, dark) {
+const setTheme = (el, dark) => {
   if (dark) {
     el.style.setProperty("--pt-bg",          "#03081f");
     el.style.setProperty("--pt-surface",     "#01061c");
@@ -33,7 +34,13 @@ function setTheme(el, dark) {
     el.style.setProperty("--pt-border",      "rgba(26,26,46,0.1)");
     el.style.setProperty("--pt-border-card", "rgba(26,26,46,0.08)");
   }
-}
+};
+
+const scrollConstants = {
+  ZOOM_START: 0.18,
+  CIRCLE_PEAK: 0.46,
+  REVEAL_AT: 0.50,
+};
 
 export default function ProjectsSection() {
   const pinContainerRef = useRef(null);
@@ -46,6 +53,15 @@ export default function ProjectsSection() {
   const introLabelRef   = useRef(null);
   const introTextRef    = useRef(null);
 
+  const isDesktop = useCallback(() => window.innerWidth > 1024, []);
+  const isMobile = useCallback(() => window.innerWidth <= 640, []);
+  const getDistance = useCallback(() => {
+    const track = trackRef.current;
+    const viewport = viewportRef.current;
+    if (!track || !viewport) return 0;
+    return track.scrollWidth - viewport.offsetWidth;
+  }, []);
+
   useEffect(() => {
     const track      = trackRef.current;
     const viewport   = viewportRef.current;
@@ -55,18 +71,12 @@ export default function ProjectsSection() {
     const introLabel = introLabelRef.current;
     const introText  = introTextRef.current;
 
-    const isDesktop   = () => window.innerWidth > 1024;
-    const getDistance = () => track.scrollWidth - viewport.offsetWidth;
-
-    const ZOOM_START  = 0.18;
-    const CIRCLE_PEAK = 0.46;
-    const REVEAL_AT   = 0.50;
+    const { ZOOM_START, CIRCLE_PEAK, REVEAL_AT } = scrollConstants;
 
     // ── Initial states ────────────────────────────────────────────────
     setTheme(container, false);
     gsap.set(content, { opacity: 0, y: 0 });
     // Center via GSAP — avoids CSS transform conflict when scale/opacity are tweened
-    const isMobile = () => window.innerWidth <= 640;
     gsap.set(intro, { 
       xPercent: -50, 
       yPercent: -50, 
@@ -505,7 +515,15 @@ export default function ProjectsSection() {
                     <span className="card-category" style={{ background: p.accent }}>
                       {p.category}
                     </span>
-                    <img className="card-img" src={p.image} alt={p.name} loading="lazy" />
+                    <OptimizedImage 
+                      className="card-img" 
+                      src={p.image} 
+                      alt={p.name}
+                      width={400}
+                      height={250}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      quality={85}
+                    />
                   </a>
                   <div className="card-body">
                     <h3 className="card-name">{p.name}</h3>

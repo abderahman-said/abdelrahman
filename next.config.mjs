@@ -16,7 +16,6 @@ const nextConfig = {
         keepAlive: true,
     },
     experimental: {
-        optimizeCss: true,
         optimizePackageImports: ['gsap', 'motion', 'ogl'],
     },
     compiler: {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { Renderer, Camera, Geometry, Program, Mesh } from 'ogl';
 
 import './Particles.css';
@@ -103,6 +103,18 @@ const Particles = ({
   const containerRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0 });
 
+  const handleMouseMove = useCallback(e => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    mouseRef.current = { x, y };
+  }, []);
+
+  const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -128,13 +140,6 @@ const Particles = ({
     window.addEventListener('resize', resize, false);
     resize();
 
-    const handleMouseMove = e => {
-      const rect = container.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-      mouseRef.current = { x, y };
-    };
-
     if (moveParticlesOnHover) {
       container.addEventListener('mousemove', handleMouseMove);
     }
@@ -143,8 +148,8 @@ const Particles = ({
     const positions = new Float32Array(count * 3);
     const randoms = new Float32Array(count * 4);
     const colors = new Float32Array(count * 3);
-    const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
 
+    // Optimize particle generation
     for (let i = 0; i < count; i++) {
       let x, y, z, len;
       do {
@@ -222,8 +227,8 @@ const Particles = ({
       if (container.contains(gl.canvas)) {
         container.removeChild(gl.canvas);
       }
+      renderer.dispose();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     particleCount,
     particleSpread,
@@ -235,7 +240,8 @@ const Particles = ({
     sizeRandomness,
     cameraDistance,
     disableRotation,
-    pixelRatio
+    pixelRatio,
+    handleMouseMove
   ]);
 
   return <div ref={containerRef} className={`particles-container ${className}`} />;
