@@ -98,7 +98,7 @@ export default function MotionCards() {
                 label.addEventListener("mouseleave", onLeave);
             });
 
-            // Enhanced Entry Animations with creative effects
+            // Enhanced Entry Animations with creative text effects
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: sectionRef.current,
@@ -106,6 +106,37 @@ export default function MotionCards() {
                     toggleActions: "play none none reverse"
                 }
             });
+
+            // Animate title with split text effect
+            const title = sectionRef.current.querySelector(".motion-card__title");
+            if (title) {
+                // Split title into words for staggered animation
+                const titleText = title.innerText;
+                title.innerHTML = titleText.split(' ').map(word => 
+                    `<span class="title-word" style="display: inline-block; opacity: 0; transform: translateY(100px) rotateX(90deg);">${word}</span>`
+                ).join(' ');
+                
+                const titleWords = title.querySelectorAll('.title-word');
+                tl.to(titleWords, {
+                    opacity: 1,
+                    y: 0,
+                    rotateX: 0,
+                    duration: 0.8,
+                    stagger: 0.15,
+                    ease: "power3.out"
+                }, 0);
+            }
+
+            // Animate subtitle with typewriter effect
+            const subtitle = sectionRef.current.querySelector(".motion-card__subtitle");
+            if (subtitle) {
+                gsap.set(subtitle, { opacity: 0 });
+                tl.to(subtitle, {
+                    opacity: 1,
+                    duration: 1,
+                    ease: "power2.out"
+                }, 0.6);
+            }
 
             const topStickerImg = sectionRef.current.querySelector(".motion-card__sticker--top img");
             if (topStickerImg) {
@@ -159,17 +190,15 @@ export default function MotionCards() {
                     {
                         opacity: 0,
                         scale: 0.5,
-                        rotation: -180
                     },
                     {
                         opacity: 1,
                         scale: 1,
-                        rotation: 0,
                         duration: 2,
                         ease: "power3.out",
                         scrollTrigger: {
                             trigger: blob,
-                            start: "top 80%",
+                            start: "top 60%",
                             end: "top 30%",
                             scrub: 1.5
                         }
@@ -179,7 +208,6 @@ export default function MotionCards() {
                 // Add floating animation to blob
                 gsap.to(blob, {
                     y: -20,
-                    rotation: 5,
                     duration: 4,
                     repeat: -1,
                     yoyo: true,
@@ -187,10 +215,22 @@ export default function MotionCards() {
                 });
             }
 
-            // Floating labels animation
+            // Enhanced floating labels with text animations
             const labelsContainer = labelsRef.current;
             if (labelsContainer) {
                 const floatingLabels = labelsContainer.querySelectorAll(".motion-card__floating-label");
+                
+                // Split text in labels for character-by-character animation
+                floatingLabels.forEach(label => {
+                    const text = label.querySelector('.motion-card__floating-text');
+                    if (text) {
+                        const textContent = text.innerText;
+                        text.innerHTML = textContent.split('').map((char, index) => 
+                            `<span class="char" style="display: inline-block; opacity: 0; transform: translateY(50px) rotateZ(${Math.random() * 20 - 10}deg);">${char === ' ' ? '&nbsp;' : char}</span>`
+                        ).join('');
+                    }
+                });
+                
                 gsap.fromTo(floatingLabels,
                     {
                         opacity: 0,
@@ -214,6 +254,20 @@ export default function MotionCards() {
                             start: "top 80%",
                             end: "top 30%",
                             scrub: 1.3
+                        },
+                        onComplete: () => {
+                            // Animate characters after label appears
+                            floatingLabels.forEach(label => {
+                                const chars = label.querySelectorAll('.char');
+                                gsap.to(chars, {
+                                    opacity: 1,
+                                    y: 0,
+                                    rotateZ: 0,
+                                    duration: 0.6,
+                                    stagger: 0.03,
+                                    ease: "back.out(1.7)"
+                                });
+                            });
                         }
                     }
                 );

@@ -57,6 +57,27 @@ export default function GSAPCardGrid() {
 
       if (!section) return;
 
+      // Enhanced title animation with character-by-character reveal
+      const titleText = title.innerText;
+      title.innerHTML = titleText.split('').map((char, index) => 
+        `<span class="title-char" style="display: inline-block; opacity: 0; transform: translateY(100px) rotateX(90deg);">${char === ' ' ? '&nbsp;' : char}</span>`
+      ).join('');
+      
+      const titleChars = title.querySelectorAll('.title-char');
+      gsap.to(titleChars, {
+        opacity: 1,
+        y: 0,
+        rotateX: 0,
+        duration: 0.8,
+        stagger: 0.05,
+        ease: "back.out(1.7)",
+        scrollTrigger: {
+          trigger: section,
+          start: "top 85%",
+          toggleActions: "play none none reverse"
+        }
+      });
+
       // Title entrance animation with creative effects
       gsap.fromTo(title,
         {
@@ -148,10 +169,19 @@ export default function GSAPCardGrid() {
         }
       });
 
-      // Title glow effect on hover
+      // Enhanced title hover effects with character animation
       const titleHover = () => {
+        gsap.to(titleChars, {
+          scale: 1.2,
+          rotationY: 180,
+          color: "#60a5fa",
+          duration: 0.4,
+          stagger: 0.02,
+          ease: "power2.out"
+        });
+        
         gsap.to(title, {
-          textShadow: "0 0 30px rgba(255, 255, 255, 0.5)",
+          textShadow: "0 0 30px rgba(96, 165, 250, 0.5)",
           scale: 1.05,
           duration: 0.3,
           ease: "power2.out"
@@ -159,6 +189,15 @@ export default function GSAPCardGrid() {
       };
 
       const titleLeave = () => {
+        gsap.to(titleChars, {
+          scale: 1,
+          rotationY: 0,
+          color: "#f0ece4",
+          duration: 0.4,
+          stagger: 0.02,
+          ease: "power2.out"
+        });
+        
         gsap.to(title, {
           textShadow: "0 0 0px rgba(255, 255, 255, 0)",
           scale: 1,

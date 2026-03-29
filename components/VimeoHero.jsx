@@ -34,6 +34,49 @@ export default function VimeoHero() {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     /* ────────────────────────────────────────────────────
+       ⓪ Enhanced text entrance animations
+    ──────────────────────────────────────────────────── */
+    useEffect(() => {
+        const title = titleRef.current;
+        const badges = [badgeTLRef.current, badgeTRRef.current, badgeMLRef.current].filter(Boolean);
+        
+        if (title) {
+            // Split title into words for staggered animation
+            const words = title.querySelectorAll('.vimeo-hero__word');
+            gsap.set(words, { opacity: 0, y: 50, rotationX: 45 });
+            
+            gsap.to(words, {
+                opacity: 1,
+                y: 0,
+                rotationX: 0,
+                duration: 1.2,
+                stagger: 0.2,
+                ease: "power3.out",
+                delay: 0.5
+            });
+        }
+        
+        // Animate badges with elastic entrance
+        badges.forEach((badge, index) => {
+            gsap.fromTo(badge,
+                {
+                    opacity: 0,
+                    scale: 0,
+                    rotation: Math.random() * 20 - 10
+                },
+                {
+                    opacity: 1,
+                    scale: 1,
+                    rotation: 0,
+                    duration: 0.8,
+                    delay: 1.2 + index * 0.15,
+                    ease: "back.out(1.7)"
+                }
+            );
+        });
+    }, []);
+
+    /* ────────────────────────────────────────────────────
        ⓪ Scroll → margin + border-radius
           Drives CSS custom properties so the browser
           composites width/height/radius together with
