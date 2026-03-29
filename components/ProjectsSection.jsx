@@ -310,7 +310,7 @@ export default function ProjectsSection() {
         .proj-content-wrapper { will-change: opacity; }
 
         .proj-header {
-          padding: 100px 72px 48px;
+          padding: 0px 72px 21px;
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
